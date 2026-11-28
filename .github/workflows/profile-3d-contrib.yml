@@ -14,6 +14,7 @@ jobs:
     name: generate-github-profile-3d-contrib
     steps:
       - uses: actions/checkout@v4
+
       - uses: yoshi389111/github-profile-3d-contrib@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -51,77 +52,193 @@ jobs:
               if not rgb:
                   return False
               r, g, b = rgb
-              if max(r, g, b) < 5 or min(r, g, b) > 235:
+              # ข้ามพื้นหลังดำสนิท (#00000f) และสีขาว
+              if max(r, g, b) < 18 or min(r, g, b) > 220:
                   return False
-              if g > r + 12 and g > b + 10:
+              # ข้ามตึกสีเขียว
+              if g > r + 8 and g > b + 6:
                   return False
+              # จับเฉพาะโทนเทาของพื้นตึก
               return (max(r, g, b) - min(r, g, b)) <= 35
 
           tag_pat = re.compile(r'<(?:path|polygon)\b[^>]*>')
-          color_pat = re.compile(
-              r'((?:fill|stroke)\s*=\s*["\']|(?:fill|stroke)\s*:\s*)'
+          fill_pat = re.compile(
+              r'(fill\s*=\s*["\']|fill\s*:\s*)'
               r'(rgba?\([^)]+\)|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b)'
           )
+          stroke_pat = re.compile(
+              r'(stroke\s*=\s*["\']|stroke\s*:\s*)'
+              r'(rgba?\([^)]+\)|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b)'
+          )
+          coord_pat = re.compile(r'[ML]\s*(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)')
 
-          lums = []
+          lums, xs, ys = [], [], []
           for tm in tag_pat.finditer(svg):
-              for cm in color_pat.finditer(tm.group(0)):
-                  rgb = parse_color(cm.group(2))
-                  if is_grey_floor(rgb):
-                      lums.append(sum(rgb) / 3.0)
+              tag = tm.group(0)
+              fm = fill_pat.search(tag)
+              if not fm:
+                  continue
+              rgb = parse_color(fm.group(2))
+              if is_grey_floor(rgb):
+                  lums.append(sum(rgb) / 3.0)
+                  d_attr = re.search(r'(?:d|points)\s*=\s*["\']([^"\']+)["\']', tag)
+                  if d_attr:
+                      for px, py in coord_pat.findall(d_attr.group(1)):
+                          xs.append(float(px))
+                          ys.append(float(py))
 
-          mid_lum = (min(lums) + max(lums)) / 2.0 if lums else 50.0
+          # หาจุดศูนย์กลางและขนาดพื้นที่ของพื้นตึกจริง เพื่อวางแนวคลื่นให้พอดี
+          if xs and ys:
+              cx = (min(xs) + max(xs)) / 2.0
+              cy = (min(ys) + max(ys)) / 2.0
+              span_x = max(max(xs) - min(xs), W * 0.65)
+              span_y = max(max(ys) - min(ys), H * 0.35)
+          else:
+              cx, cy = W * 0.5, H * 0.55
+              span_x, span_y = W * 0.85, H * 0.45
+
+          lo_lum = min(lums) if lums else 30.0
+          hi_lum = max(lums) if lums else 90.0
+          lum_span = hi_lum - lo_lum
+
+          # ขยายกรอบคลื่นเผื่อการหมุนเอียง 24 องศาตามแนวไอโซเมตริก
+          x0, x1 = cx - span_x * 0.80, cx + span_x * 0.80
+          y0, y1 = cy - span_y * 0.95, cy + span_y * 0.95
+          rw, rh = x1 - x0, y1 - y0
+          rot = f"translate({cx:.1f},{cy:.1f}) rotate(24) translate({-cx:.1f},{-cy:.1f})"
+
+          def wave_ribbon(y_start, y_thick, amp1, amp2):
+              ya = y0 + rh * y_start
+              yb = ya + rh * y_thick
+              return (
+                  f"M{x0:.1f},{ya:.1f} "
+                  f"C{x0+rw*0.22:.1f},{ya+rh*amp1:.1f} {x0+rw*0.42:.1f},{ya-rh*amp2:.1f} {x0+rw*0.62:.1f},{ya+rh*amp1*0.6:.1f} "
+                  f"C{x0+rw*0.78:.1f},{ya+rh*amp2:.1f} {x0+rw*0.90:.1f},{ya-rh*amp1*0.5:.1f} {x1:.1f},{ya:.1f} "
+                  f"L{x1:.1f},{yb:.1f} "
+                  f"C{x0+rw*0.86:.1f},{yb-rh*amp1*0.4:.1f} {x0+rw*0.74:.1f},{yb+rh*amp2*0.9:.1f} {x0+rw*0.58:.1f},{yb+rh*amp1*0.5:.1f} "
+                  f"C{x0+rw*0.38:.1f},{yb-rh*amp2*0.9:.1f} {x0+rw*0.20:.1f},{yb+rh*amp1*0.9:.1f} {x0:.1f},{yb:.1f} Z"
+              )
+
+          def wave_crest(y_start, amp1, amp2):
+              ya = y0 + rh * y_start
+              return (
+                  f"M{x0:.1f},{ya:.1f} "
+                  f"C{x0+rw*0.22:.1f},{ya+rh*amp1:.1f} {x0+rw*0.42:.1f},{ya-rh*amp2:.1f} {x0+rw*0.62:.1f},{ya+rh*amp1*0.6:.1f} "
+                  f"C{x0+rw*0.78:.1f},{ya+rh*amp2:.1f} {x0+rw*0.90:.1f},{ya-rh*amp1*0.5:.1f} {x1:.1f},{ya:.1f}"
+              )
+
+          w1 = wave_ribbon(0.14, 0.16, 0.08, 0.07)
+          w2 = wave_ribbon(0.36, 0.20, -0.09, -0.08)
+          w3 = wave_ribbon(0.58, 0.18, 0.08, 0.09)
+          w4 = wave_ribbon(0.76, 0.16, -0.07, -0.06)
+
+          c1 = wave_crest(0.36, -0.09, -0.08)
+          c2 = wave_crest(0.58, 0.08, 0.09)
+          c3 = wave_crest(0.22, 0.08, 0.07)
 
           defs = f"""<defs>
-            <linearGradient id="gwBaseTop" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#072616"/>
-              <stop offset="45%" stop-color="#114d2d"/>
-              <stop offset="100%" stop-color="#082e1a"/>
+            <linearGradient id="gwBaseTop" x1="0%" y1="0%" x2="100%" y2="25%">
+              <stop offset="0%" stop-color="#041c10"/>
+              <stop offset="35%" stop-color="#0b4024"/>
+              <stop offset="70%" stop-color="#125e35"/>
+              <stop offset="100%" stop-color="#062816"/>
             </linearGradient>
-            <linearGradient id="gwBaseSide" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#04170d"/>
-              <stop offset="50%" stop-color="#0a331d"/>
-              <stop offset="100%" stop-color="#041a0e"/>
+            <linearGradient id="gwBaseLeft" x1="0%" y1="0%" x2="100%" y2="25%">
+              <stop offset="0%" stop-color="#03120a"/>
+              <stop offset="50%" stop-color="#082b18"/>
+              <stop offset="100%" stop-color="#04190e"/>
             </linearGradient>
-            <linearGradient id="gwBand1" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#16a34a" stop-opacity="0.35"/>
-              <stop offset="50%" stop-color="#4ade80" stop-opacity="0.55"/>
-              <stop offset="100%" stop-color="#22c55e" stop-opacity="0.30"/>
+            <linearGradient id="gwBaseRight" x1="0%" y1="0%" x2="100%" y2="25%">
+              <stop offset="0%" stop-color="#020b06"/>
+              <stop offset="50%" stop-color="#051c10"/>
+              <stop offset="100%" stop-color="#020f08"/>
             </linearGradient>
-            <linearGradient id="gwBand2" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#4ade80" stop-opacity="0.45"/>
-              <stop offset="50%" stop-color="#86efac" stop-opacity="0.38"/>
-              <stop offset="100%" stop-color="#16a34a" stop-opacity="0.48"/>
+
+            <linearGradient id="gwWaveA" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#15803d" stop-opacity="0.28"/>
+              <stop offset="45%" stop-color="#22c55e" stop-opacity="0.52"/>
+              <stop offset="75%" stop-color="#4ade80" stop-opacity="0.38"/>
+              <stop offset="100%" stop-color="#16a34a" stop-opacity="0.24"/>
+            </linearGradient>
+            <linearGradient id="gwWaveB" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#22c55e" stop-opacity="0.34"/>
+              <stop offset="35%" stop-color="#4ade80" stop-opacity="0.58"/>
+              <stop offset="68%" stop-color="#86efac" stop-opacity="0.45"/>
+              <stop offset="100%" stop-color="#15803d" stop-opacity="0.32"/>
+            </linearGradient>
+            <linearGradient id="gwCrest" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#4ade80" stop-opacity="0.15"/>
+              <stop offset="50%" stop-color="#bbf7d0" stop-opacity="0.65"/>
+              <stop offset="100%" stop-color="#4ade80" stop-opacity="0.20"/>
             </linearGradient>
 
             <pattern id="greenWaveTop" patternUnits="userSpaceOnUse" width="{W:.1f}" height="{H:.1f}">
-              <rect width="{W:.1f}" height="{H:.1f}" fill="url(#gwBaseTop)"/>
-              <path d="M0,{H*0.20:.1f} C{W*0.30:.1f},{H*0.34:.1f} {W*0.58:.1f},{H*0.10:.1f} {W:.1f},{H*0.24:.1f} L{W:.1f},{H*0.38:.1f} C{W*0.62:.1f},{H*0.26:.1f} {W*0.32:.1f},{H*0.46:.1f} 0,{H*0.32:.1f} Z" fill="url(#gwBand1)"/>
-              <path d="M0,{H*0.42:.1f} C{W*0.25:.1f},{H*0.26:.1f} {W*0.52:.1f},{H*0.56:.1f} {W*0.78:.1f},{H*0.38:.1f} C{W*0.90:.1f},{H*0.30:.1f} {W*0.96:.1f},{H*0.34:.1f} {W:.1f},{H*0.32:.1f} L{W:.1f},{H*0.58:.1f} C{W*0.75:.1f},{H*0.72:.1f} {W*0.48:.1f},{H*0.44:.1f} {W*0.22:.1f},{H*0.60:.1f} C{W*0.10:.1f},{H*0.66:.1f} {W*0.04:.1f},{H*0.62:.1f} 0,{H*0.64:.1f} Z" fill="url(#gwBand2)"/>
-              <path d="M0,{H*0.64:.1f} C{W*0.28:.1f},{H*0.76:.1f} {W*0.55:.1f},{H*0.50:.1f} {W*0.82:.1f},{H*0.66:.1f} C{W*0.92:.1f},{H*0.72:.1f} {W*0.97:.1f},{H*0.67:.1f} {W:.1f},{H*0.64:.1f} L{W:.1f},{H*0.88:.1f} C{W*0.72:.1f},{H*0.76:.1f} {W*0.45:.1f},{H*0.96:.1f} {W*0.18:.1f},{H*0.82:.1f} C{W*0.08:.1f},{H*0.77:.1f} {W*0.03:.1f},{H*0.81:.1f} 0,{H*0.84:.1f} Z" fill="url(#gwBand1)"/>
-              <path d="M0,{H*0.42:.1f} C{W*0.25:.1f},{H*0.26:.1f} {W*0.52:.1f},{H*0.56:.1f} {W*0.78:.1f},{H*0.38:.1f} C{W*0.90:.1f},{H*0.30:.1f} {W*0.96:.1f},{H*0.34:.1f} {W:.1f},{H*0.32:.1f}" fill="none" stroke="#86efac" stroke-width="3" stroke-opacity="0.55"/>
-              <path d="M0,{H*0.64:.1f} C{W*0.28:.1f},{H*0.76:.1f} {W*0.55:.1f},{H*0.50:.1f} {W*0.82:.1f},{H*0.66:.1f} C{W*0.92:.1f},{H*0.72:.1f} {W*0.97:.1f},{H*0.67:.1f} {W:.1f},{H*0.64:.1f}" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-opacity="0.45"/>
+              <g transform="{rot}">
+                <rect x="{x0:.1f}" y="{y0:.1f}" width="{rw:.1f}" height="{rh:.1f}" fill="url(#gwBaseTop)"/>
+                <path d="{w1}" fill="url(#gwWaveA)"/>
+                <path d="{w2}" fill="url(#gwWaveB)"/>
+                <path d="{w3}" fill="url(#gwWaveA)"/>
+                <path d="{w4}" fill="url(#gwWaveB)" opacity="0.75"/>
+                <path d="{c1}" fill="none" stroke="url(#gwCrest)" stroke-width="2.6"/>
+                <path d="{c2}" fill="none" stroke="url(#gwCrest)" stroke-width="2.2"/>
+                <path d="{c3}" fill="none" stroke="#86efac" stroke-width="1.5" stroke-opacity="0.35"/>
+              </g>
             </pattern>
 
-            <pattern id="greenWaveSide" patternUnits="userSpaceOnUse" width="{W:.1f}" height="{H:.1f}">
-              <rect width="{W:.1f}" height="{H:.1f}" fill="url(#gwBaseSide)"/>
-              <path d="M0,{H*0.42:.1f} C{W*0.25:.1f},{H*0.26:.1f} {W*0.52:.1f},{H*0.56:.1f} {W*0.78:.1f},{H*0.38:.1f} L{W:.1f},{H*0.32:.1f} L{W:.1f},{H*0.58:.1f} C{W*0.75:.1f},{H*0.72:.1f} {W*0.48:.1f},{H*0.44:.1f} {W*0.22:.1f},{H*0.60:.1f} L0,{H*0.64:.1f} Z" fill="#22c55e" fill-opacity="0.22"/>
+            <pattern id="greenWaveLeft" patternUnits="userSpaceOnUse" width="{W:.1f}" height="{H:.1f}">
+              <g transform="{rot}">
+                <rect x="{x0:.1f}" y="{y0:.1f}" width="{rw:.1f}" height="{rh:.1f}" fill="url(#gwBaseLeft)"/>
+                <path d="{w2}" fill="#22c55e" fill-opacity="0.22"/>
+                <path d="{w3}" fill="#16a34a" fill-opacity="0.18"/>
+              </g>
+            </pattern>
+
+            <pattern id="greenWaveRight" patternUnits="userSpaceOnUse" width="{W:.1f}" height="{H:.1f}">
+              <g transform="{rot}">
+                <rect x="{x0:.1f}" y="{y0:.1f}" width="{rw:.1f}" height="{rh:.1f}" fill="url(#gwBaseRight)"/>
+                <path d="{w2}" fill="#16a34a" fill-opacity="0.14"/>
+              </g>
             </pattern>
           </defs>"""
 
           replaced = 0
+
           def recolor_tag(tm):
-              def replace_color(cm):
-                  global replaced
-                  prefix, col = cm.group(1), cm.group(2)
-                  rgb = parse_color(col)
-                  if is_grey_floor(rgb):
-                      replaced += 1
-                      lum = sum(rgb) / 3.0
-                      target = "url(#greenWaveTop)" if lum >= mid_lum else "url(#greenWaveSide)"
-                      return f"{prefix}{target}"
-                  return cm.group(0)
-              return color_pat.sub(replace_color, tm.group(0))
+              global replaced
+              tag = tm.group(0)
+              fm = fill_pat.search(tag)
+              if not fm:
+                  return tag
+              rgb = parse_color(fm.group(2))
+              if not is_grey_floor(rgb):
+                  return tag
+
+              replaced += 1
+              lum = sum(rgb) / 3.0
+              if lum_span == 0 or lum >= lo_lum + 0.65 * lum_span:
+                  target, is_top = "url(#greenWaveTop)", True
+              elif lum >= lo_lum + 0.25 * lum_span:
+                  target, is_top = "url(#greenWaveLeft)", False
+              else:
+                  target, is_top = "url(#greenWaveRight)", False
+
+              new_tag = fill_pat.sub(lambda m: f"{m.group(1)}{target}", tag, count=1)
+
+              def fix_stroke(sm):
+                  if is_grey_floor(parse_color(sm.group(2))):
+                      return f"{sm.group(1)}#042413"
+                  return sm.group(0)
+
+              if stroke_pat.search(new_tag):
+                  new_tag = stroke_pat.sub(fix_stroke, new_tag)
+              elif is_top and not re.search(r'\bstroke', new_tag):
+                  new_tag = re.sub(
+                      r'(\s*/?>$)',
+                      r' stroke="#031a0e" stroke-opacity="0.45" stroke-width="0.6"\1',
+                      new_tag,
+                      count=1
+                  )
+              return new_tag
 
           svg = re.sub(r'(<svg\b[^>]*>)', lambda m: m.group(1) + "\n" + defs, svg, count=1)
           svg = tag_pat.sub(recolor_tag, svg)
@@ -129,12 +246,7 @@ jobs:
           with open(path, "w", encoding="utf-8") as f:
               f.write(svg)
 
-          print(f"Recolored {replaced} floor attributes.")
-          if replaced == 0:
-              samples = list(dict.fromkeys(
-                  cm.group(2) for tm in tag_pat.finditer(svg) for cm in color_pat.finditer(tm.group(0))
-              ))[:15]
-              print("Sample colors found:", samples)
+          print(f"Recolored {replaced} floor faces.")
           EOF
 
       - name: Commit & Push
@@ -145,4 +257,4 @@ jobs:
           if ! git diff --staged --quiet; then
             git commit -m "Update 3D contribution graph with green wave floor"
             git push
-          fi  
+          fi
