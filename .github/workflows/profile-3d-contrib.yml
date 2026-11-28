@@ -23,28 +23,65 @@ jobs:
       - name: Recolor Grey City Floor to Green Wave
         run: |
           python3 - <<'EOF'
+          import colorsys
+          import glob
+          import math
           import re
+          import xml.etree.ElementTree as ET
 
           path = "profile-3d-contrib/profile-night-green.svg"
-          with open(path, "r", encoding="utf-8") as f:
-              svg = f.read()
+          print("SVG files available:", sorted(glob.glob("profile-3d-contrib/*.svg")))
 
-          vb = re.search(r'viewBox=["\']\s*[\d.-]+\s+[\d.-]+\s+([\d.]+)\s+([\d.]+)\s*["\']', svg)
-          W = float(vb.group(1)) if vb else 1280.0
-          H = float(vb.group(2)) if vb else 850.0
+          tree = ET.parse(path)
+          root = tree.getroot()
+
+          ns = ""
+          if root.tag.startswith("{"):
+              ns = root.tag[1:].split("}")[0]
+              ET.register_namespace("", ns)
+          ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
+
+          def qtag(name):
+              return f"{{{ns}}}{name}" if ns else name
+
+          vb = (root.get("viewBox") or "").split()
+          W = float(vb[2]) if len(vb) == 4 else float(re.sub(r"[^\d.]", "", root.get("width") or "1280") or 1280)
+          H = float(vb[3]) if len(vb) == 4 else float(re.sub(r"[^\d.]", "", root.get("height") or "850") or 850)
+
+          NAMED_GREYS = {
+              "gray": (128, 128, 128), "grey": (128, 128, 128),
+              "darkgray": (169, 169, 169), "darkgrey": (169, 169, 169),
+              "dimgray": (105, 105, 105), "dimgrey": (105, 105, 105),
+              "lightgray": (211, 211, 211), "lightgrey": (211, 211, 211),
+              "silver": (192, 192, 192),
+          }
 
           def parse_color(val):
+              if not val:
+                  return None
               v = val.strip().lower()
-              m_rgb = re.match(r'rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)', v)
-              if m_rgb:
-                  return tuple(int(float(x)) for x in m_rgb.groups())
-              m_hex6 = re.match(r'#([0-9a-f]{6})$', v)
-              if m_hex6:
-                  hx = m_hex6.group(1)
+              if v in ("none", "transparent") or v.startswith("url("):
+                  return None
+              if v in NAMED_GREYS:
+                  return NAMED_GREYS[v]
+              m = re.match(r"rgba?\(\s*([\d.]+)%?\s*[,\s]\s*([\d.]+)%?\s*[,\s]\s*([\d.]+)%?", v)
+              if m:
+                  vals = [float(x) for x in m.groups()]
+                  if "%" in v:
+                      vals = [x * 2.55 for x in vals]
+                  return tuple(int(round(max(0, min(255, x)))) for x in vals)
+              m = re.match(r"hsla?\(\s*([\d.]+)\s*[,\s]\s*([\d.]+)%\s*[,\s]\s*([\d.]+)%", v)
+              if m:
+                  h, s, l = (float(x) for x in m.groups())
+                  r, g, b = colorsys.hls_to_rgb((h % 360) / 360.0, l / 100.0, s / 100.0)
+                  return int(round(r * 255)), int(round(g * 255)), int(round(b * 255))
+              m = re.match(r"#([0-9a-f]{6})$", v)
+              if m:
+                  hx = m.group(1)
                   return int(hx[0:2], 16), int(hx[2:4], 16), int(hx[4:6], 16)
-              m_hex3 = re.match(r'#([0-9a-f]{3})$', v)
-              if m_hex3:
-                  hx = m_hex3.group(1)
+              m = re.match(r"#([0-9a-f]{3})$", v)
+              if m:
+                  hx = m.group(1)
                   return int(hx[0]*2, 16), int(hx[1]*2, 16), int(hx[2]*2, 16)
               return None
 
@@ -52,201 +89,252 @@ jobs:
               if not rgb:
                   return False
               r, g, b = rgb
-              # ข้ามพื้นหลังดำสนิท (#00000f) และสีขาว
-              if max(r, g, b) < 18 or min(r, g, b) > 220:
+              # ข้ามพื้นหลังดำ/น้ำเงินเข้มจัด (#00000f) และสีขาว
+              if r <= 10 and g <= 10 and b <= 20:
+                  return False
+              if max(r, g, b) < 10 or min(r, g, b) > 215:
                   return False
               # ข้ามตึกสีเขียว
-              if g > r + 8 and g > b + 6:
+              if g > r + 10 and g > b + 8:
                   return False
-              # จับเฉพาะโทนเทาของพื้นตึก
-              return (max(r, g, b) - min(r, g, b)) <= 35
+              # จับทั้งสีเทาแท้และสีเทาอมน้ำเงินของ GitHub Dark (#161b22, #21262d, #444444 ฯลฯ)
+              return (max(r, g, b) - min(r, g, b)) <= 48
 
-          tag_pat = re.compile(r'<(?:path|polygon)\b[^>]*>')
-          fill_pat = re.compile(
-              r'(fill\s*=\s*["\']|fill\s*:\s*)'
-              r'(rgba?\([^)]+\)|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b)'
-          )
-          stroke_pat = re.compile(
-              r'(stroke\s*=\s*["\']|stroke\s*:\s*)'
-              r'(rgba?\([^)]+\)|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b)'
-          )
-          coord_pat = re.compile(r'[ML]\s*(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)')
-
-          lums, xs, ys = [], [], []
-          for tm in tag_pat.finditer(svg):
-              tag = tm.group(0)
-              fm = fill_pat.search(tag)
-              if not fm:
-                  continue
-              rgb = parse_color(fm.group(2))
-              if is_grey_floor(rgb):
-                  lums.append(sum(rgb) / 3.0)
-                  d_attr = re.search(r'(?:d|points)\s*=\s*["\']([^"\']+)["\']', tag)
-                  if d_attr:
-                      for px, py in coord_pat.findall(d_attr.group(1)):
-                          xs.append(float(px))
-                          ys.append(float(py))
-
-          # หาจุดศูนย์กลางและขนาดพื้นที่ของพื้นตึกจริง เพื่อวางแนวคลื่นให้พอดี
-          if xs and ys:
-              cx = (min(xs) + max(xs)) / 2.0
-              cy = (min(ys) + max(ys)) / 2.0
-              span_x = max(max(xs) - min(xs), W * 0.65)
-              span_y = max(max(ys) - min(ys), H * 0.35)
-          else:
-              cx, cy = W * 0.5, H * 0.55
-              span_x, span_y = W * 0.85, H * 0.45
-
-          lo_lum = min(lums) if lums else 30.0
-          hi_lum = max(lums) if lums else 90.0
-          lum_span = hi_lum - lo_lum
-
-          # ขยายกรอบคลื่นเผื่อการหมุนเอียง 24 องศาตามแนวไอโซเมตริก
-          x0, x1 = cx - span_x * 0.80, cx + span_x * 0.80
-          y0, y1 = cy - span_y * 0.95, cy + span_y * 0.95
-          rw, rh = x1 - x0, y1 - y0
-          rot = f"translate({cx:.1f},{cy:.1f}) rotate(24) translate({-cx:.1f},{-cy:.1f})"
-
-          def wave_ribbon(y_start, y_thick, amp1, amp2):
-              ya = y0 + rh * y_start
-              yb = ya + rh * y_thick
+          def mat_mul(m1, m2):
+              a1, b1, c1, d1, e1, f1 = m1
+              a2, b2, c2, d2, e2, f2 = m2
               return (
-                  f"M{x0:.1f},{ya:.1f} "
-                  f"C{x0+rw*0.22:.1f},{ya+rh*amp1:.1f} {x0+rw*0.42:.1f},{ya-rh*amp2:.1f} {x0+rw*0.62:.1f},{ya+rh*amp1*0.6:.1f} "
-                  f"C{x0+rw*0.78:.1f},{ya+rh*amp2:.1f} {x0+rw*0.90:.1f},{ya-rh*amp1*0.5:.1f} {x1:.1f},{ya:.1f} "
-                  f"L{x1:.1f},{yb:.1f} "
-                  f"C{x0+rw*0.86:.1f},{yb-rh*amp1*0.4:.1f} {x0+rw*0.74:.1f},{yb+rh*amp2*0.9:.1f} {x0+rw*0.58:.1f},{yb+rh*amp1*0.5:.1f} "
-                  f"C{x0+rw*0.38:.1f},{yb-rh*amp2*0.9:.1f} {x0+rw*0.20:.1f},{yb+rh*amp1*0.9:.1f} {x0:.1f},{yb:.1f} Z"
+                  a1*a2 + c1*b2, b1*a2 + d1*b2,
+                  a1*c2 + c1*d2, b1*c2 + d1*d2,
+                  a1*e2 + c1*f2 + e1, b1*e2 + d1*f2 + f1,
               )
 
-          def wave_crest(y_start, amp1, amp2):
-              ya = y0 + rh * y_start
-              return (
-                  f"M{x0:.1f},{ya:.1f} "
-                  f"C{x0+rw*0.22:.1f},{ya+rh*amp1:.1f} {x0+rw*0.42:.1f},{ya-rh*amp2:.1f} {x0+rw*0.62:.1f},{ya+rh*amp1*0.6:.1f} "
-                  f"C{x0+rw*0.78:.1f},{ya+rh*amp2:.1f} {x0+rw*0.90:.1f},{ya-rh*amp1*0.5:.1f} {x1:.1f},{ya:.1f}"
-              )
+          def parse_transform(t_str):
+              m = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+              if not t_str:
+                  return m
+              for fn, args_str in re.findall(r"(translate|scale|rotate|matrix)\s*\(([^)]*)\)", t_str):
+                  nums = [float(x) for x in re.findall(r"[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?", args_str)]
+                  if fn == "translate" and nums:
+                      tx = nums[0]
+                      ty = nums[1] if len(nums) > 1 else 0.0
+                      m = mat_mul(m, (1.0, 0.0, 0.0, 1.0, tx, ty))
+                  elif fn == "scale" and nums:
+                      sx = nums[0]
+                      sy = nums[1] if len(nums) > 1 else sx
+                      m = mat_mul(m, (sx, 0.0, 0.0, sy, 0.0, 0.0))
+                  elif fn == "rotate" and nums:
+                      rad = math.radians(nums[0])
+                      co, si = math.cos(rad), math.sin(rad)
+                      rot = (co, si, -si, co, 0.0, 0.0)
+                      if len(nums) >= 3:
+                          cx, cy = nums[1], nums[2]
+                          rot = mat_mul(mat_mul((1, 0, 0, 1, cx, cy), rot), (1, 0, 0, 1, -cx, -cy))
+                      m = mat_mul(m, rot)
+                  elif fn == "matrix" and len(nums) == 6:
+                      m = mat_mul(m, tuple(nums))
+              return m
 
-          w1 = wave_ribbon(0.14, 0.16, 0.08, 0.07)
-          w2 = wave_ribbon(0.36, 0.20, -0.09, -0.08)
-          w3 = wave_ribbon(0.58, 0.18, 0.08, 0.09)
-          w4 = wave_ribbon(0.76, 0.16, -0.07, -0.06)
+          def apply_mat(m, x, y):
+              a, b, c, d, e, f = m
+              return a*x + c*y + e, b*x + d*y + f
 
-          c1 = wave_crest(0.36, -0.09, -0.08)
-          c2 = wave_crest(0.58, 0.08, 0.09)
-          c3 = wave_crest(0.22, 0.08, 0.07)
+          TOKEN_RE = re.compile(r"[MmLlHhVvCcSsQqTtAaZz]|[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?")
 
-          defs = f"""<defs>
-            <linearGradient id="gwBaseTop" x1="0%" y1="0%" x2="100%" y2="25%">
-              <stop offset="0%" stop-color="#041c10"/>
-              <stop offset="35%" stop-color="#0b4024"/>
-              <stop offset="70%" stop-color="#125e35"/>
-              <stop offset="100%" stop-color="#062816"/>
-            </linearGradient>
-            <linearGradient id="gwBaseLeft" x1="0%" y1="0%" x2="100%" y2="25%">
-              <stop offset="0%" stop-color="#03120a"/>
-              <stop offset="50%" stop-color="#082b18"/>
-              <stop offset="100%" stop-color="#04190e"/>
-            </linearGradient>
-            <linearGradient id="gwBaseRight" x1="0%" y1="0%" x2="100%" y2="25%">
-              <stop offset="0%" stop-color="#020b06"/>
-              <stop offset="50%" stop-color="#051c10"/>
-              <stop offset="100%" stop-color="#020f08"/>
-            </linearGradient>
+          def extract_points(elem, mat):
+              tag = elem.tag.split("}")[-1]
+              raw_pts = []
+              if tag == "path":
+                  tokens = TOKEN_RE.findall(elem.get("d") or "")
+                  x = y = sx = sy = 0.0
+                  cmd = None
+                  i = 0
+                  while i < len(tokens):
+                      tk = tokens[i]
+                      if tk.isalpha():
+                          cmd = tk
+                          i += 1
+                          if cmd in "Zz":
+                              x, y = sx, sy
+                          continue
+                      if not cmd:
+                          break
+                      if cmd in "Mm":
+                          if i + 1 >= len(tokens): break
+                          nx, ny = float(tokens[i]), float(tokens[i+1]); i += 2
+                          x, y = (x + nx, y + ny) if cmd == "m" else (nx, ny)
+                          sx, sy = x, y
+                          raw_pts.append((x, y))
+                          cmd = "l" if cmd == "m" else "L"
+                      elif cmd in "LlTt":
+                          if i + 1 >= len(tokens): break
+                          nx, ny = float(tokens[i]), float(tokens[i+1]); i += 2
+                          x, y = (x + nx, y + ny) if cmd.islower() else (nx, ny)
+                          raw_pts.append((x, y))
+                      elif cmd in "Hh":
+                          nx = float(tokens[i]); i += 1
+                          x = x + nx if cmd == "h" else nx
+                          raw_pts.append((x, y))
+                      elif cmd in "Vv":
+                          ny = float(tokens[i]); i += 1
+                          y = y + ny if cmd == "v" else ny
+                          raw_pts.append((x, y))
+                      elif cmd in "Cc":
+                          if i + 5 >= len(tokens): break
+                          nx, ny = float(tokens[i+4]), float(tokens[i+5]); i += 6
+                          x, y = (x + nx, y + ny) if cmd == "c" else (nx, ny)
+                          raw_pts.append((x, y))
+                      elif cmd in "SsQq":
+                          if i + 3 >= len(tokens): break
+                          nx, ny = float(tokens[i+2]), float(tokens[i+3]); i += 4
+                          x, y = (x + nx, y + ny) if cmd.islower() else (nx, ny)
+                          raw_pts.append((x, y))
+                      elif cmd in "Aa":
+                          if i + 6 >= len(tokens): break
+                          nx, ny = float(tokens[i+5]), float(tokens[i+6]); i += 7
+                          x, y = (x + nx, y + ny) if cmd == "a" else (nx, ny)
+                          raw_pts.append((x, y))
+                      else:
+                          break
+              elif tag in ("polygon", "polyline"):
+                  nums = [float(v) for v in re.findall(r"[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?", elem.get("points") or "")]
+                  for i in range(0, len(nums) - 1, 2):
+                      raw_pts.append((nums[i], nums[i+1]))
+              elif tag == "rect":
+                  rx = float(elem.get("x") or 0)
+                  ry = float(elem.get("y") or 0)
+                  rw = float(elem.get("width") or 0)
+                  rh = float(elem.get("height") or 0)
+                  raw_pts = [(rx, ry), (rx + rw, ry), (rx + rw, ry + rh), (rx, ry + rh)]
+              return [apply_mat(mat, px, py) for px, py in raw_pts]
 
-            <linearGradient id="gwWaveA" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#15803d" stop-opacity="0.28"/>
-              <stop offset="45%" stop-color="#22c55e" stop-opacity="0.52"/>
-              <stop offset="75%" stop-color="#4ade80" stop-opacity="0.38"/>
-              <stop offset="100%" stop-color="#16a34a" stop-opacity="0.24"/>
-            </linearGradient>
-            <linearGradient id="gwWaveB" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#22c55e" stop-opacity="0.34"/>
-              <stop offset="35%" stop-color="#4ade80" stop-opacity="0.58"/>
-              <stop offset="68%" stop-color="#86efac" stop-opacity="0.45"/>
-              <stop offset="100%" stop-color="#15803d" stop-opacity="0.32"/>
-            </linearGradient>
-            <linearGradient id="gwCrest" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#4ade80" stop-opacity="0.15"/>
-              <stop offset="50%" stop-color="#bbf7d0" stop-opacity="0.65"/>
-              <stop offset="100%" stop-color="#4ade80" stop-opacity="0.20"/>
-            </linearGradient>
+          def get_prop(elem, prop):
+              style = elem.get("style") or ""
+              m = re.search(rf"(?:^|;)\s*{prop}\s*:\s*([^;]+)", style, re.I)
+              if m:
+                  return m.group(1).strip()
+              return elem.get(prop)
 
-            <pattern id="greenWaveTop" patternUnits="userSpaceOnUse" width="{W:.1f}" height="{H:.1f}">
-              <g transform="{rot}">
-                <rect x="{x0:.1f}" y="{y0:.1f}" width="{rw:.1f}" height="{rh:.1f}" fill="url(#gwBaseTop)"/>
-                <path d="{w1}" fill="url(#gwWaveA)"/>
-                <path d="{w2}" fill="url(#gwWaveB)"/>
-                <path d="{w3}" fill="url(#gwWaveA)"/>
-                <path d="{w4}" fill="url(#gwWaveB)" opacity="0.75"/>
-                <path d="{c1}" fill="none" stroke="url(#gwCrest)" stroke-width="2.6"/>
-                <path d="{c2}" fill="none" stroke="url(#gwCrest)" stroke-width="2.2"/>
-                <path d="{c3}" fill="none" stroke="#86efac" stroke-width="1.5" stroke-opacity="0.35"/>
-              </g>
-            </pattern>
-
-            <pattern id="greenWaveLeft" patternUnits="userSpaceOnUse" width="{W:.1f}" height="{H:.1f}">
-              <g transform="{rot}">
-                <rect x="{x0:.1f}" y="{y0:.1f}" width="{rw:.1f}" height="{rh:.1f}" fill="url(#gwBaseLeft)"/>
-                <path d="{w2}" fill="#22c55e" fill-opacity="0.22"/>
-                <path d="{w3}" fill="#16a34a" fill-opacity="0.18"/>
-              </g>
-            </pattern>
-
-            <pattern id="greenWaveRight" patternUnits="userSpaceOnUse" width="{W:.1f}" height="{H:.1f}">
-              <g transform="{rot}">
-                <rect x="{x0:.1f}" y="{y0:.1f}" width="{rw:.1f}" height="{rh:.1f}" fill="url(#gwBaseRight)"/>
-                <path d="{w2}" fill="#16a34a" fill-opacity="0.14"/>
-              </g>
-            </pattern>
-          </defs>"""
-
-          replaced = 0
-
-          def recolor_tag(tm):
-              global replaced
-              tag = tm.group(0)
-              fm = fill_pat.search(tag)
-              if not fm:
-                  return tag
-              rgb = parse_color(fm.group(2))
-              if not is_grey_floor(rgb):
-                  return tag
-
-              replaced += 1
-              lum = sum(rgb) / 3.0
-              if lum_span == 0 or lum >= lo_lum + 0.65 * lum_span:
-                  target, is_top = "url(#greenWaveTop)", True
-              elif lum >= lo_lum + 0.25 * lum_span:
-                  target, is_top = "url(#greenWaveLeft)", False
+          def set_prop(elem, prop, val):
+              style = elem.get("style") or ""
+              if re.search(rf"(?:^|;)\s*{prop}\s*:", style, re.I):
+                  new_style = re.sub(rf"((?:^|;)\s*{prop}\s*:\s*)[^;]+", rf"\g<1>{val}", style, flags=re.I)
+                  elem.set("style", new_style)
               else:
-                  target, is_top = "url(#greenWaveRight)", False
+                  elem.set(prop, val)
 
-              new_tag = fill_pat.sub(lambda m: f"{m.group(1)}{target}", tag, count=1)
+          candidates = []
+          all_fills = set()
 
-              def fix_stroke(sm):
-                  if is_grey_floor(parse_color(sm.group(2))):
-                      return f"{sm.group(1)}#042413"
-                  return sm.group(0)
+          def walk(elem, parent_mat, inherited_fill):
+              tag = elem.tag.split("}")[-1]
+              if tag in ("defs", "style", "text", "title", "desc"):
+                  return
+              mat = mat_mul(parent_mat, parse_transform(elem.get("transform")))
+              own_fill = get_prop(elem, "fill")
+              eff_fill = own_fill if own_fill is not None else inherited_fill
 
-              if stroke_pat.search(new_tag):
-                  new_tag = stroke_pat.sub(fix_stroke, new_tag)
-              elif is_top and not re.search(r'\bstroke', new_tag):
-                  new_tag = re.sub(
-                      r'(\s*/?>$)',
-                      r' stroke="#031a0e" stroke-opacity="0.45" stroke-width="0.6"\1',
-                      new_tag,
-                      count=1
-                  )
-              return new_tag
+              if tag in ("path", "polygon", "rect"):
+                  if eff_fill:
+                      all_fills.add(eff_fill)
+                  rgb = parse_color(eff_fill)
+                  if is_grey_floor(rgb):
+                      pts = extract_points(elem, mat)
+                      if pts:
+                          xs = [p[0] for p in pts]
+                          ys = [p[1] for p in pts]
+                          bw, bh = max(xs) - min(xs), max(ys) - min(ys)
+                          # ข้ามกรอบพื้นหลังเต็มจอ
+                          if not (tag == "rect" and bw >= W * 0.75 and bh >= H * 0.75):
+                              cx = sum(xs) / len(xs)
+                              cy = sum(ys) / len(ys)
+                              lum = sum(rgb) / 3.0
+                              candidates.append((elem, cx, cy, bw, bh, lum, eff_fill))
 
-          svg = re.sub(r'(<svg\b[^>]*>)', lambda m: m.group(1) + "\n" + defs, svg, count=1)
-          svg = tag_pat.sub(recolor_tag, svg)
+              for child in elem:
+                  walk(child, mat, eff_fill)
 
-          with open(path, "w", encoding="utf-8") as f:
-              f.write(svg)
+          walk(root, (1.0, 0.0, 0.0, 1.0, 0.0, 0.0), None)
 
-          print(f"Recolored {replaced} floor faces.")
+          if not candidates:
+              print("WARNING: Recolored 0 floor faces! Sample fills found:", sorted(all_fills)[:25])
+          else:
+              min_x = min(c[1] for c in candidates)
+              max_x = max(c[1] for c in candidates)
+              min_y = min(c[2] for c in candidates)
+              max_y = max(c[2] for c in candidates)
+              span_x = max(max_x - min_x, 1.0)
+              span_y = max(max_y - min_y, 1.0)
+
+              lums = [c[5] for c in candidates]
+              lo_lum, hi_lum = min(lums), max(lums)
+              lum_span = hi_lum - lo_lum
+
+              # เฉดเกรเดี้ยนคลื่นสีเขียว (ท้องคลื่นเข้ม -> มรกต -> เขียวสด -> สันคลื่นสว่าง)
+              STOPS = [
+                  (0.00, (7, 52, 30)),
+                  (0.35, (14, 102, 56)),
+                  (0.70, (26, 168, 86)),
+                  (1.00, (74, 222, 128)),
+              ]
+
+              def wave_rgb(u, v, shade):
+                  # ลู่เฉียงไปตามแนวพื้น 3D พร้อมคลื่นพริ้ว 2 ชั้น
+                  diag = 0.70 * u + 0.30 * v
+                  w1 = math.sin((diag * 2.1 + 0.32 * math.sin(v * math.pi * 2.0)) * math.pi * 2.0)
+                  w2 = math.sin((u * 1.3 - v * 1.1) * math.pi * 2.0)
+                  t = max(0.0, min(1.0, 0.50 + 0.36 * w1 + 0.14 * w2))
+
+                  for idx in range(len(STOPS) - 1):
+                      t0, c0 = STOPS[idx]
+                      t1, c1 = STOPS[idx + 1]
+                      if t <= t1:
+                          k = (t - t0) / (t1 - t0) if t1 > t0 else 0.0
+                          r = int(round((c0[0] + (c1[0] - c0[0]) * k) * shade))
+                          g = int(round((c0[1] + (c1[1] - c0[1]) * k) * shade))
+                          b = int(round((c0[2] + (c1[2] - c0[2]) * k) * shade))
+                          return f"#{max(0,min(255,r)):02x}{max(0,min(255,g)):02x}{max(0,min(255,b)):02x}"
+                  return "#1aa856"
+
+              # สร้าง linearGradient เผื่อกรณีมีแผ่นฐานชิ้นใหญ่ชิ้นเดียว
+              defs = ET.Element(qtag("defs"))
+              lg = ET.SubElement(defs, qtag("linearGradient"), {
+                  "id": "gwSlabGrad", "gradientUnits": "objectBoundingBox",
+                  "x1": "0%", "y1": "20%", "x2": "100%", "y2": "80%"
+              })
+              for off, col in [("0%", "#07341e"), ("28%", "#168f4b"), ("52%", "#0c5730"), ("78%", "#34d375"), ("100%", "#094024")]:
+                  ET.SubElement(lg, qtag("stop"), {"offset": off, "stop-color": col})
+              root.insert(0, defs)
+
+              matched_originals = set()
+              for elem, cx, cy, bw, bh, lum, orig_fill in candidates:
+                  matched_originals.add(orig_fill)
+                  u = (cx - min_x) / span_x
+                  v = (cy - min_y) / span_y
+
+                  if bw > span_x * 0.25 and bh > span_y * 0.25:
+                      set_prop(elem, "fill", "url(#gwSlabGrad)")
+                  else:
+                      if lum_span < 1.0 or lum >= lo_lum + 0.62 * lum_span:
+                          shade, is_top = 1.00, True
+                      elif lum >= lo_lum + 0.28 * lum_span:
+                          shade, is_top = 0.68, False
+                      else:
+                          shade, is_top = 0.45, False
+
+                      set_prop(elem, "fill", wave_rgb(u, v, shade))
+                      if is_top and not get_prop(elem, "stroke"):
+                          elem.set("stroke", "#042112")
+                          elem.set("stroke-opacity", "0.45")
+                          elem.set("stroke-width", "0.5")
+
+                  cur_stroke = get_prop(elem, "stroke")
+                  if is_grey_floor(parse_color(cur_stroke)):
+                      set_prop(elem, "stroke", "#052916")
+
+              print(f"Recolored {len(candidates)} floor faces! Original floor colors:", sorted(matched_originals)[:15])
+
+          tree.write(path, encoding="utf-8", xml_declaration=False)
           EOF
 
       - name: Commit & Push
