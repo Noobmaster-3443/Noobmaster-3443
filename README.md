@@ -1,65 +1,65 @@
 <div align="center">
-  <img src="assets/cyber-banner.svg" width="100%" alt="Noobmaster-3443 Cyberpunk HUD" />
-</div>
+  <!-- PPG Green Banner -->
+  <img src="assets/ppg-green-banner.svg" width="100%" alt="SilverSwaiFish Green PPG Banner" />
 
-<br/>
-
-<div align="center">
-  <a href="https://prachinburi-flood-tracker.vercel.app">
-    <img src="https://img.shields.io/badge/DEPLOYED-Thailand--Flood--Tracker-FCEE0A?style=for-the-badge&labelColor=07080f" />
-  </a>
-  <img src="https://img.shields.io/badge/CLASS-VIBE_CODER-FF003C?style=for-the-badge&labelColor=07080f" />
-  <img src="https://komarev.com/ghpvc/?username=Noobmaster-3443&label=NET_HITS&color=00f0ff&style=for-the-badge" alt="Profile Views" />
-</div>
-
-<br/>
-
-<div align="center">
-  <img src="assets/cyber-divider.svg" width="100%" />
-</div>
-
-<br/>
-
-<div align="center">
-  <img src="https://skillicons.dev/icons?i=ts,js,react,nodejs,tailwind,html,css,postgres,mysql,linux,windows,git,github,vscode&theme=dark&perline=7" />
   <br/><br/>
-  <img src="https://img.shields.io/badge/Supabase-07080f?style=for-the-badge&logo=supabase&logoColor=00f0ff" />
-  <img src="https://img.shields.io/badge/Vercel-07080f?style=for-the-badge&logo=vercel&logoColor=fcee0a" />
-</div>
 
-<br/>
+  <!-- Cute Green Badges -->
+  <p>
+    <img src="https://img.shields.io/badge/STATUS-ONLINE-4ADE80?style=for-the-badge&logo=statuspage&logoColor=14532D&labelColor=14532D" alt="Status Online"/>
+    <img src="https://img.shields.io/badge/CLASS-VIBE__CODER-86EFAC?style=for-the-badge&logo=sparkles&logoColor=14532D&labelColor=14532D" alt="Vibe Coder"/>
+    <img src="https://komarev.com/ghpvc/?username=Noobmaster-3443&label=PROFILE+VIEWS&color=4ade80&style=for-the-badge" alt="Profile Views"/>
+  </p>
 
-<div align="center">
-  <img src="assets/cyber-divider.svg" width="100%" />
-</div>
+  <br/>
+  <img src="assets/ppg-green-divider.svg" width="100%" alt="Green PPG Divider" />
+  <br/><br/>
 
-<br/>
+  <!-- Tech Stack -->
+  <h3>🍀 <code>SilverSwaiFish's Powerpuff Toolkit</code> 🍀</h3>
+  <p>
+    <img src="https://skillicons.dev/icons?i=ts,js,react,nodejs,tailwind,postgres,mysql,linux,git,vscode&theme=dark" alt="Tech Stack" />
+  </p>
+  <p>
+    <img src="https://img.shields.io/badge/Supabase-14532D?style=for-the-badge&logo=supabase&logoColor=4ADE80" alt="Supabase"/>
+    <img src="https://img.shields.io/badge/Vercel-14532D?style=for-the-badge&logo=vercel&logoColor=86EFAC" alt="Vercel"/>
+  </p>
 
-<div align="center">
-  <img src="profile-3d-contrib/profile-night-rainbow.svg" width="95%" alt="3D Neon Contribution Graph" />
-</div>
+  <br/>
+  <img src="assets/ppg-green-divider.svg" width="100%" alt="Green PPG Divider" />
+  <br/><br/>
 
-<br/>
+  <!-- Activity Graph (Green Wave - Last 31 Days) -->
+  <h3>💚 <code>Green Energy Wave (Last 31 Days)</code> 💚</h3>
+  <img src="https://github-readme-activity-graph.vercel.app/graph?username=Noobmaster-3443&bg_color=0f1f17&color=86efac&line=4ade80&point=ffffff&area=true&area_color=22c55e&custom_title=SilverSwaiFish's%20Activity%20Wave" width="95%" alt="Green Activity Graph" />
 
-<div align="center">
-  <img height="170" src="https://github-readme-stats.vercel.app/api?username=Noobmaster-3443&show_icons=true&bg_color=07080f&title_color=fcee0a&text_color=e6edf3&icon_color=00f0ff&border_color=ff003c&hide_rank=true" />
-  <img height="170" src="https://github-readme-stats.vercel.app/api/top-langs/?username=Noobmaster-3443&layout=compact&bg_color=07080f&title_color=fcee0a&text_color=e6edf3&border_color=00f0ff&langs_count=6" />
-</div>
+  <br/><br/>
 
-<br/>
+  <!-- 3D Green Contribution Graph -->
+  <h3>🌿 <code>3D Green Contribution City</code> 🌿</h3>
+  <img src="profile-3d-contrib/profile-night-green.svg" width="90%" alt="3D Green Contribution Graph" />
 
-<div align="center">
-  <img src="https://streak-stats.demolab.com?user=Noobmaster-3443&background=07080f&border=fcee0a&stroke=ff003c&ring=fcee0a&fire=ff003c&currStreakNum=ffffff&sideNums=00f0ff&currStreakLabel=fcee0a&sideLabels=e6edf3&dates=8b949e" alt="GitHub Streak" />
-</div>
+  <br/><br/>
+  <img src="assets/ppg-green-divider.svg" width="100%" alt="Green PPG Divider" />
+  <br/><br/>
 
-<br/>
+  <!-- GitHub Stats & Top Languages -->
+  <h3>✨ <code>Powerpuff Stats</code> ✨</h3>
+  <p>
+    <img height="165" src="https://github-readme-stats.vercel.app/api?username=Noobmaster-3443&show_icons=true&bg_color=0f1f17&title_color=86efac&icon_color=4ade80&text_color=ecfdf5&border_color=4ade80&border_radius=16&custom_title=SilverSwaiFish's%20Stats" alt="GitHub Stats" />
+    <img height="165" src="https://github-readme-stats.vercel.app/api/top-langs/?username=Noobmaster-3443&layout=compact&bg_color=0f1f17&title_color=86efac&text_color=ecfdf5&border_color=4ade80&border_radius=16" alt="Top Languages" />
+  </p>
 
-<div align="center">
-  <img src="https://github-readme-activity-graph.vercel.app/graph?username=Noobmaster-3443&bg_color=07080f&color=fcee0a&line=00f0ff&point=ff003c&area=true&area_color=ff003c&border_color=00f0ff" width="95%" />
-</div>
+  <br/>
 
-<br/>
+  <!-- GitHub Streak Stats -->
+  <p>
+    <img src="https://streak-stats.demolab.com?user=Noobmaster-3443&background=0F1F17&border=4ADE80&stroke=22C55E&ring=4ADE80&fire=86EFAC&currStreakNum=FFFFFF&sideNums=FFFFFF&currStreakLabel=86EFAC&sideLabels=4ADE80&dates=A7F3D0&border_radius=16" width="55%" alt="GitHub Streak" />
+  </p>
 
-<div align="center">
-  <img src="assets/cyber-divider.svg" width="100%" />
+  <br/>
+  <img src="assets/ppg-green-divider.svg" width="100%" alt="Green PPG Divider" />
+  <br/>
+
+  <p><sub>✨ crafted with sugar, spice, and green vibes by <b>SilverSwaiFish</b> 💚</sub></p>
 </div>
