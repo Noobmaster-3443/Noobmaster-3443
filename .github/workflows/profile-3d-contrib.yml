@@ -1,0 +1,148 @@
+name: GitHub-Profile-3D-Contrib
+
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: generate-github-profile-3d-contrib
+    steps:
+      - uses: actions/checkout@v4
+      - uses: yoshi389111/github-profile-3d-contrib@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          USERNAME: ${{ github.repository_owner }}
+
+      - name: Recolor Grey City Floor to Green Wave
+        run: |
+          python3 - <<'EOF'
+          import re
+
+          path = "profile-3d-contrib/profile-night-green.svg"
+          with open(path, "r", encoding="utf-8") as f:
+              svg = f.read()
+
+          vb = re.search(r'viewBox=["\']\s*[\d.-]+\s+[\d.-]+\s+([\d.]+)\s+([\d.]+)\s*["\']', svg)
+          W = float(vb.group(1)) if vb else 1280.0
+          H = float(vb.group(2)) if vb else 850.0
+
+          def parse_color(val):
+              v = val.strip().lower()
+              m_rgb = re.match(r'rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)', v)
+              if m_rgb:
+                  return tuple(int(float(x)) for x in m_rgb.groups())
+              m_hex6 = re.match(r'#([0-9a-f]{6})$', v)
+              if m_hex6:
+                  hx = m_hex6.group(1)
+                  return int(hx[0:2], 16), int(hx[2:4], 16), int(hx[4:6], 16)
+              m_hex3 = re.match(r'#([0-9a-f]{3})$', v)
+              if m_hex3:
+                  hx = m_hex3.group(1)
+                  return int(hx[0]*2, 16), int(hx[1]*2, 16), int(hx[2]*2, 16)
+              return None
+
+          def is_grey_floor(rgb):
+              if not rgb:
+                  return False
+              r, g, b = rgb
+              if max(r, g, b) < 5 or min(r, g, b) > 235:
+                  return False
+              if g > r + 12 and g > b + 10:
+                  return False
+              return (max(r, g, b) - min(r, g, b)) <= 35
+
+          tag_pat = re.compile(r'<(?:path|polygon)\b[^>]*>')
+          color_pat = re.compile(
+              r'((?:fill|stroke)\s*=\s*["\']|(?:fill|stroke)\s*:\s*)'
+              r'(rgba?\([^)]+\)|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b)'
+          )
+
+          lums = []
+          for tm in tag_pat.finditer(svg):
+              for cm in color_pat.finditer(tm.group(0)):
+                  rgb = parse_color(cm.group(2))
+                  if is_grey_floor(rgb):
+                      lums.append(sum(rgb) / 3.0)
+
+          mid_lum = (min(lums) + max(lums)) / 2.0 if lums else 50.0
+
+          defs = f"""<defs>
+            <linearGradient id="gwBaseTop" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#072616"/>
+              <stop offset="45%" stop-color="#114d2d"/>
+              <stop offset="100%" stop-color="#082e1a"/>
+            </linearGradient>
+            <linearGradient id="gwBaseSide" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#04170d"/>
+              <stop offset="50%" stop-color="#0a331d"/>
+              <stop offset="100%" stop-color="#041a0e"/>
+            </linearGradient>
+            <linearGradient id="gwBand1" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#16a34a" stop-opacity="0.35"/>
+              <stop offset="50%" stop-color="#4ade80" stop-opacity="0.55"/>
+              <stop offset="100%" stop-color="#22c55e" stop-opacity="0.30"/>
+            </linearGradient>
+            <linearGradient id="gwBand2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#4ade80" stop-opacity="0.45"/>
+              <stop offset="50%" stop-color="#86efac" stop-opacity="0.38"/>
+              <stop offset="100%" stop-color="#16a34a" stop-opacity="0.48"/>
+            </linearGradient>
+
+            <pattern id="greenWaveTop" patternUnits="userSpaceOnUse" width="{W:.1f}" height="{H:.1f}">
+              <rect width="{W:.1f}" height="{H:.1f}" fill="url(#gwBaseTop)"/>
+              <path d="M0,{H*0.20:.1f} C{W*0.30:.1f},{H*0.34:.1f} {W*0.58:.1f},{H*0.10:.1f} {W:.1f},{H*0.24:.1f} L{W:.1f},{H*0.38:.1f} C{W*0.62:.1f},{H*0.26:.1f} {W*0.32:.1f},{H*0.46:.1f} 0,{H*0.32:.1f} Z" fill="url(#gwBand1)"/>
+              <path d="M0,{H*0.42:.1f} C{W*0.25:.1f},{H*0.26:.1f} {W*0.52:.1f},{H*0.56:.1f} {W*0.78:.1f},{H*0.38:.1f} C{W*0.90:.1f},{H*0.30:.1f} {W*0.96:.1f},{H*0.34:.1f} {W:.1f},{H*0.32:.1f} L{W:.1f},{H*0.58:.1f} C{W*0.75:.1f},{H*0.72:.1f} {W*0.48:.1f},{H*0.44:.1f} {W*0.22:.1f},{H*0.60:.1f} C{W*0.10:.1f},{H*0.66:.1f} {W*0.04:.1f},{H*0.62:.1f} 0,{H*0.64:.1f} Z" fill="url(#gwBand2)"/>
+              <path d="M0,{H*0.64:.1f} C{W*0.28:.1f},{H*0.76:.1f} {W*0.55:.1f},{H*0.50:.1f} {W*0.82:.1f},{H*0.66:.1f} C{W*0.92:.1f},{H*0.72:.1f} {W*0.97:.1f},{H*0.67:.1f} {W:.1f},{H*0.64:.1f} L{W:.1f},{H*0.88:.1f} C{W*0.72:.1f},{H*0.76:.1f} {W*0.45:.1f},{H*0.96:.1f} {W*0.18:.1f},{H*0.82:.1f} C{W*0.08:.1f},{H*0.77:.1f} {W*0.03:.1f},{H*0.81:.1f} 0,{H*0.84:.1f} Z" fill="url(#gwBand1)"/>
+              <path d="M0,{H*0.42:.1f} C{W*0.25:.1f},{H*0.26:.1f} {W*0.52:.1f},{H*0.56:.1f} {W*0.78:.1f},{H*0.38:.1f} C{W*0.90:.1f},{H*0.30:.1f} {W*0.96:.1f},{H*0.34:.1f} {W:.1f},{H*0.32:.1f}" fill="none" stroke="#86efac" stroke-width="3" stroke-opacity="0.55"/>
+              <path d="M0,{H*0.64:.1f} C{W*0.28:.1f},{H*0.76:.1f} {W*0.55:.1f},{H*0.50:.1f} {W*0.82:.1f},{H*0.66:.1f} C{W*0.92:.1f},{H*0.72:.1f} {W*0.97:.1f},{H*0.67:.1f} {W:.1f},{H*0.64:.1f}" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-opacity="0.45"/>
+            </pattern>
+
+            <pattern id="greenWaveSide" patternUnits="userSpaceOnUse" width="{W:.1f}" height="{H:.1f}">
+              <rect width="{W:.1f}" height="{H:.1f}" fill="url(#gwBaseSide)"/>
+              <path d="M0,{H*0.42:.1f} C{W*0.25:.1f},{H*0.26:.1f} {W*0.52:.1f},{H*0.56:.1f} {W*0.78:.1f},{H*0.38:.1f} L{W:.1f},{H*0.32:.1f} L{W:.1f},{H*0.58:.1f} C{W*0.75:.1f},{H*0.72:.1f} {W*0.48:.1f},{H*0.44:.1f} {W*0.22:.1f},{H*0.60:.1f} L0,{H*0.64:.1f} Z" fill="#22c55e" fill-opacity="0.22"/>
+            </pattern>
+          </defs>"""
+
+          replaced = 0
+          def recolor_tag(tm):
+              def replace_color(cm):
+                  global replaced
+                  prefix, col = cm.group(1), cm.group(2)
+                  rgb = parse_color(col)
+                  if is_grey_floor(rgb):
+                      replaced += 1
+                      lum = sum(rgb) / 3.0
+                      target = "url(#greenWaveTop)" if lum >= mid_lum else "url(#greenWaveSide)"
+                      return f"{prefix}{target}"
+                  return cm.group(0)
+              return color_pat.sub(replace_color, tm.group(0))
+
+          svg = re.sub(r'(<svg\b[^>]*>)', lambda m: m.group(1) + "\n" + defs, svg, count=1)
+          svg = tag_pat.sub(recolor_tag, svg)
+
+          with open(path, "w", encoding="utf-8") as f:
+              f.write(svg)
+
+          print(f"Recolored {replaced} floor attributes.")
+          if replaced == 0:
+              samples = list(dict.fromkeys(
+                  cm.group(2) for tm in tag_pat.finditer(svg) for cm in color_pat.finditer(tm.group(0))
+              ))[:15]
+              print("Sample colors found:", samples)
+          EOF
+
+      - name: Commit & Push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A .
+          if ! git diff --staged --quiet; then
+            git commit -m "Update 3D contribution graph with green wave floor"
+            git push
+          fi  
