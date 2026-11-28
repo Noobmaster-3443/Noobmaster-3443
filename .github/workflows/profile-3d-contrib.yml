@@ -20,7 +20,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USERNAME: ${{ github.repository_owner }}
 
-      - name: Recolor Grey City Floor to Green Wave
+      - name: Recolor Grey City Floor to Flowing Green Wave
         run: |
           python3 - <<'EOF'
           import math
@@ -31,10 +31,14 @@ jobs:
           tree = ET.parse(path)
           root = tree.getroot()
 
+          ns = ""
           if root.tag.startswith("{"):
               ns = root.tag[1:].split("}")[0]
               ET.register_namespace("", ns)
           ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
+
+          def qtag(name):
+              return f"{{{ns}}}{name}" if ns else name
 
           def mat_mul(m1, m2):
               a1, b1, c1, d1, e1, f1 = m1
@@ -105,7 +109,7 @@ jobs:
               span_x = max(max_x - min_x, 1.0)
               span_y = max(max_y - min_y, 1.0)
 
-              # เฉดเกรเดี้ยนคลื่นสีเขียว (ท้องคลื่นเข้ม -> มรกต -> เขียวสด -> สันคลื่นสว่าง)
+              # เฉดเกรเดี้ยนคลื่นสีเขียว
               STOPS = [
                   (0.00, (11, 66, 36)),
                   (0.35, (20, 118, 62)),
@@ -113,14 +117,8 @@ jobs:
                   (1.00, (86, 232, 138)),
               ]
 
-              def wave_hex(u, v, shade):
-                  # คำนวณระยะตามแนวแกนเฉียงของพื้นตึก (u = ซ้ายไปขวา, v = บนลงล่าง)
-                  along = 0.65 * u + 0.35 * v
-                  across = 0.65 * v - 0.35 * u
-                  w1 = math.sin((along * 2.4 + 0.45 * math.sin(across * math.pi * 3.0)) * math.pi * 2.0)
-                  w2 = math.sin((along * 1.1 - across * 2.2) * math.pi * 2.0)
-                  t = max(0.0, min(1.0, 0.50 + 0.36 * w1 + 0.14 * w2))
-
+              def color_at(t, shade):
+                  t = max(0.0, min(1.0, t))
                   for i in range(len(STOPS) - 1):
                       t0, c0 = STOPS[i]
                       t1, c1 = STOPS[i + 1]
@@ -132,25 +130,63 @@ jobs:
                           return f"#{max(0,min(255,r)):02x}{max(0,min(255,g)):02x}{max(0,min(255,b)):02x}"
                   return "#22b95e"
 
+              DURATION = 5.5   # ความเร็วคลื่น (วินาที/รอบ — เลขน้อยไหลเร็ว เลขมากไหลช้า)
+              N_PHASES = 32    # ความละเอียดเฟสของคลื่น
+
+              def build_keyframes(name, shade):
+                  steps = []
+                  for step in range(0, 105, 5):
+                      p = step / 100.0
+                      # สร้างคลื่นหลัก + ระลอกรองให้ไหลนุ่มนวล
+                      t = 0.50 + 0.36 * math.sin(p * math.pi * 2.0) + 0.14 * math.sin(p * math.pi * 4.0 + 0.8)
+                      steps.append(f"  {step}% {{ fill: {color_at(t, shade)}; }}")
+                  return f"@keyframes {name} {{\n" + "\n".join(steps) + "\n}"
+
+              css_lines = [
+                  build_keyframes("gwFlowTop", 1.00),
+                  build_keyframes("gwFlowLeft", 0.72),
+                  build_keyframes("gwFlowRight", 0.52),
+                  f".gw-top {{ animation: gwFlowTop {DURATION:.2f}s linear infinite; }}",
+                  f".gw-left {{ animation: gwFlowLeft {DURATION:.2f}s linear infinite; }}",
+                  f".gw-right {{ animation: gwFlowRight {DURATION:.2f}s linear infinite; }}",
+              ]
+              for idx in range(N_PHASES):
+                  delay = -(idx / N_PHASES) * DURATION
+                  css_lines.append(f".gw-p{idx} {{ animation-delay: {delay:.3f}s; }}")
+
+              style_elem = root.find(f".//{qtag('style')}")
+              if style_elem is None:
+                  style_elem = ET.Element(qtag("style"))
+                  root.insert(0, style_elem)
+              style_elem.text = (style_elem.text or "") + "\n" + "\n".join(css_lines) + "\n"
+
               for elem, face_type, cx, cy in faces:
                   u = (cx - min_x) / span_x
                   v = (cy - min_y) / span_y
 
+                  # คำนวณเฟสคลื่นให้ลู่เฉียงและพริ้วโค้งตามแนวพื้น 3D
+                  along = 0.65 * u + 0.35 * v
+                  across = 0.65 * v - 0.35 * u
+                  phase = (along * 2.1 + 0.24 * math.sin(across * math.pi * 2.6)) % 1.0
+                  p_idx = int(phase * N_PHASES) % N_PHASES
+
+                  # คำนวณสีนิ่งเริ่มต้นไว้เป็น Fallback
+                  t_static = 0.50 + 0.36 * math.sin(phase * math.pi * 2.0) + 0.14 * math.sin(phase * math.pi * 4.0 + 0.8)
+
                   if face_type == "cont-top-0":
-                      elem.set("fill", wave_hex(u, v, 1.00))
+                      elem.set("fill", color_at(t_static, 1.00))
+                      elem.set("class", f"gw-top gw-p{p_idx}")
                       elem.set("stroke", "#052614")
                       elem.set("stroke-opacity", "0.55")
                       elem.set("stroke-width", "0.45")
                   elif face_type == "cont-left-0":
-                      elem.set("fill", wave_hex(u, v, 0.72))
+                      elem.set("fill", color_at(t_static, 0.72))
+                      elem.set("class", f"gw-left gw-p{p_idx}")
                   else:  # cont-right-0
-                      elem.set("fill", wave_hex(u, v, 0.52))
+                      elem.set("fill", color_at(t_static, 0.52))
+                      elem.set("class", f"gw-right gw-p{p_idx}")
 
-                  # ลบ class เดิมออกเพื่อไม่ให้ CSS .cont-*-0 มาทับสีใหม่
-                  if "class" in elem.attrib:
-                      del elem.attrib["class"]
-
-              print(f"Recolored {len(faces)} floor faces successfully!")
+              print(f"Applied flowing green wave animation to {len(faces)} floor faces!")
 
           tree.write(path, encoding="utf-8", xml_declaration=False)
           EOF
@@ -161,6 +197,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A .
           if ! git diff --staged --quiet; then
-            git commit -m "Update 3D contribution graph with green wave floor"
+            git commit -m "Update 3D contribution graph with flowing green wave floor"
             git push
           fi
