@@ -29,7 +29,7 @@
   <br/><br/>
 
   <!-- 3D Green Contribution Graph -->
-  <img src="profile-3d-contrib/profile-night-green.svg" width="90%" alt="3D Green Contribution Graph" />
+  <img src="profile-3d-contrib/profile-night-green.svg?v=3" width="90%" alt="3D Green Contribution Graph" />
 
   <br/><br/>
   <img src="assets/ppg-green-divider.svg" width="100%" alt="Green PPG Divider" />
