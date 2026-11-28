@@ -25,7 +25,6 @@
   <br/><br/>
   <img src="https://img.shields.io/badge/Supabase-07080f?style=for-the-badge&logo=supabase&logoColor=00f0ff" />
   <img src="https://img.shields.io/badge/Vercel-07080f?style=for-the-badge&logo=vercel&logoColor=fcee0a" />
-  <img src="https://img.shields.io/badge/FL_Studio-07080f?style=for-the-badge&logo=image-line&logoColor=ff003c" />
 </div>
 
 <br/>
