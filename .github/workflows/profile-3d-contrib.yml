@@ -19,7 +19,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USERNAME: ${{ github.repository_owner }}
 
-      - name: Apply Green Gradient Wave Background
+      - name: Recolor Grey City Floor to Green Wave Gradient
         run: |
           python3 - <<'EOF'
           import re
@@ -28,29 +28,31 @@ jobs:
           with open(path, "r", encoding="utf-8") as f:
               svg = f.read()
 
-          wave_bg = """<defs>
-            <linearGradient id="ppgBg" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#06120c"/>
-              <stop offset="50%" stop-color="#0f291c"/>
-              <stop offset="100%" stop-color="#05100a"/>
+          defs = """<defs>
+            <linearGradient id="greenWaveFloor" gradientUnits="userSpaceOnUse" x1="180" y1="220" x2="1120" y2="680">
+              <stop offset="0%" stop-color="#0a2e1a"/>
+              <stop offset="22%" stop-color="#155e36"/>
+              <stop offset="40%" stop-color="#22c55e"/>
+              <stop offset="58%" stop-color="#0f3d24"/>
+              <stop offset="78%" stop-color="#4ade80"/>
+              <stop offset="100%" stop-color="#0a2e1a"/>
             </linearGradient>
-            <linearGradient id="ppgWave1" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#4ade80" stop-opacity="0.28"/>
-              <stop offset="50%" stop-color="#22c55e" stop-opacity="0.16"/>
-              <stop offset="100%" stop-color="#86efac" stop-opacity="0.28"/>
-            </linearGradient>
-            <linearGradient id="ppgWave2" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#86efac" stop-opacity="0.18"/>
-              <stop offset="50%" stop-color="#16a34a" stop-opacity="0.25"/>
-              <stop offset="100%" stop-color="#4ade80" stop-opacity="0.12"/>
-            </linearGradient>
-          </defs>
-          <rect x="0" y="0" width="100%" height="100%" fill="url(#ppgBg)" rx="16"/>
-          <path d="M0,560 C320,440 580,680 920,520 C1080,445 1200,490 1280,460 L1280,850 L0,850 Z" fill="url(#ppgWave1)"/>
-          <path d="M0,650 C280,740 620,520 960,640 C1120,695 1210,620 1280,590 L1280,850 L0,850 Z" fill="url(#ppgWave2)"/>
-          <path d="M0,560 C320,440 580,680 920,520 C1080,445 1200,490 1280,460" fill="none" stroke="#4ade80" stroke-width="2" stroke-opacity="0.45"/>"""
+          </defs>"""
 
-          svg = re.sub(r"<rect\b[^>]*(?:/>|></rect>)", wave_bg, svg, count=1)
+          svg = re.sub(r"(<svg\b[^>]*>)", r"\1\n" + defs, svg, count=1)
+
+          def recolor_path(match):
+              tag = match.group(0)
+              def replace_hex(m):
+                  prefix, hx = m.group(1), m.group(2)
+                  r, g, b = int(hx[0:2], 16), int(hx[2:4], 16), int(hx[4:6], 16)
+                  # จับเฉพาะโทนสีเทาของพื้นเมือง (ค่า R, G, B ใกล้เคียงกัน)
+                  if max(r, g, b) - min(r, g, b) <= 25 and 15 <= max(r, g, b) <= 210:
+                      return f"{prefix}url(#greenWaveFloor)"
+                  return m.group(0)
+              return re.sub(r'(fill=["\']?|fill:\s*)#([0-9a-fA-F]{6})', replace_hex, tag)
+
+          svg = re.sub(r"<path\b[^>]*>", recolor_path, svg)
 
           with open(path, "w", encoding="utf-8") as f:
               f.write(svg)
@@ -62,6 +64,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A .
           if ! git diff --staged --quiet; then
-            git commit -m "Update 3D contribution graph with green wave bg"
+            git commit -m "Update 3D contribution graph with green wave floor"
             git push
           fi
