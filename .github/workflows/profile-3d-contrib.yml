@@ -23,82 +23,18 @@ jobs:
       - name: Recolor Grey City Floor to Green Wave
         run: |
           python3 - <<'EOF'
-          import colorsys
-          import glob
           import math
           import re
           import xml.etree.ElementTree as ET
 
           path = "profile-3d-contrib/profile-night-green.svg"
-          print("SVG files available:", sorted(glob.glob("profile-3d-contrib/*.svg")))
-
           tree = ET.parse(path)
           root = tree.getroot()
 
-          ns = ""
           if root.tag.startswith("{"):
               ns = root.tag[1:].split("}")[0]
               ET.register_namespace("", ns)
           ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
-
-          def qtag(name):
-              return f"{{{ns}}}{name}" if ns else name
-
-          vb = (root.get("viewBox") or "").split()
-          W = float(vb[2]) if len(vb) == 4 else float(re.sub(r"[^\d.]", "", root.get("width") or "1280") or 1280)
-          H = float(vb[3]) if len(vb) == 4 else float(re.sub(r"[^\d.]", "", root.get("height") or "850") or 850)
-
-          NAMED_GREYS = {
-              "gray": (128, 128, 128), "grey": (128, 128, 128),
-              "darkgray": (169, 169, 169), "darkgrey": (169, 169, 169),
-              "dimgray": (105, 105, 105), "dimgrey": (105, 105, 105),
-              "lightgray": (211, 211, 211), "lightgrey": (211, 211, 211),
-              "silver": (192, 192, 192),
-          }
-
-          def parse_color(val):
-              if not val:
-                  return None
-              v = val.strip().lower()
-              if v in ("none", "transparent") or v.startswith("url("):
-                  return None
-              if v in NAMED_GREYS:
-                  return NAMED_GREYS[v]
-              m = re.match(r"rgba?\(\s*([\d.]+)%?\s*[,\s]\s*([\d.]+)%?\s*[,\s]\s*([\d.]+)%?", v)
-              if m:
-                  vals = [float(x) for x in m.groups()]
-                  if "%" in v:
-                      vals = [x * 2.55 for x in vals]
-                  return tuple(int(round(max(0, min(255, x)))) for x in vals)
-              m = re.match(r"hsla?\(\s*([\d.]+)\s*[,\s]\s*([\d.]+)%\s*[,\s]\s*([\d.]+)%", v)
-              if m:
-                  h, s, l = (float(x) for x in m.groups())
-                  r, g, b = colorsys.hls_to_rgb((h % 360) / 360.0, l / 100.0, s / 100.0)
-                  return int(round(r * 255)), int(round(g * 255)), int(round(b * 255))
-              m = re.match(r"#([0-9a-f]{6})$", v)
-              if m:
-                  hx = m.group(1)
-                  return int(hx[0:2], 16), int(hx[2:4], 16), int(hx[4:6], 16)
-              m = re.match(r"#([0-9a-f]{3})$", v)
-              if m:
-                  hx = m.group(1)
-                  return int(hx[0]*2, 16), int(hx[1]*2, 16), int(hx[2]*2, 16)
-              return None
-
-          def is_grey_floor(rgb):
-              if not rgb:
-                  return False
-              r, g, b = rgb
-              # ข้ามพื้นหลังดำ/น้ำเงินเข้มจัด (#00000f) และสีขาว
-              if r <= 10 and g <= 10 and b <= 20:
-                  return False
-              if max(r, g, b) < 10 or min(r, g, b) > 215:
-                  return False
-              # ข้ามตึกสีเขียว
-              if g > r + 10 and g > b + 8:
-                  return False
-              # จับทั้งสีเทาแท้และสีเทาอมน้ำเงินของ GitHub Dark (#161b22, #21262d, #444444 ฯลฯ)
-              return (max(r, g, b) - min(r, g, b)) <= 48
 
           def mat_mul(m1, m2):
               a1, b1, c1, d1, e1, f1 = m1
@@ -113,7 +49,7 @@ jobs:
               m = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
               if not t_str:
                   return m
-              for fn, args_str in re.findall(r"(translate|scale|rotate|matrix)\s*\(([^)]*)\)", t_str):
+              for fn, args_str in re.findall(r"(translate|scale|rotate|skewX|skewY|matrix)\s*\(([^)]*)\)", t_str):
                   nums = [float(x) for x in re.findall(r"[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?", args_str)]
                   if fn == "translate" and nums:
                       tx = nums[0]
@@ -131,6 +67,10 @@ jobs:
                           cx, cy = nums[1], nums[2]
                           rot = mat_mul(mat_mul((1, 0, 0, 1, cx, cy), rot), (1, 0, 0, 1, -cx, -cy))
                       m = mat_mul(m, rot)
+                  elif fn == "skewX" and nums:
+                      m = mat_mul(m, (1.0, 0.0, math.tan(math.radians(nums[0])), 1.0, 0.0, 0.0))
+                  elif fn == "skewY" and nums:
+                      m = mat_mul(m, (1.0, math.tan(math.radians(nums[0])), 0.0, 1.0, 0.0, 0.0))
                   elif fn == "matrix" and len(nums) == 6:
                       m = mat_mul(m, tuple(nums))
               return m
@@ -139,200 +79,78 @@ jobs:
               a, b, c, d, e, f = m
               return a*x + c*y + e, b*x + d*y + f
 
-          TOKEN_RE = re.compile(r"[MmLlHhVvCcSsQqTtAaZz]|[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?")
+          FLOOR_CLASSES = {"cont-top-0", "cont-left-0", "cont-right-0"}
+          faces = []
 
-          def extract_points(elem, mat):
-              tag = elem.tag.split("}")[-1]
-              raw_pts = []
-              if tag == "path":
-                  tokens = TOKEN_RE.findall(elem.get("d") or "")
-                  x = y = sx = sy = 0.0
-                  cmd = None
-                  i = 0
-                  while i < len(tokens):
-                      tk = tokens[i]
-                      if tk.isalpha():
-                          cmd = tk
-                          i += 1
-                          if cmd in "Zz":
-                              x, y = sx, sy
-                          continue
-                      if not cmd:
-                          break
-                      if cmd in "Mm":
-                          if i + 1 >= len(tokens): break
-                          nx, ny = float(tokens[i]), float(tokens[i+1]); i += 2
-                          x, y = (x + nx, y + ny) if cmd == "m" else (nx, ny)
-                          sx, sy = x, y
-                          raw_pts.append((x, y))
-                          cmd = "l" if cmd == "m" else "L"
-                      elif cmd in "LlTt":
-                          if i + 1 >= len(tokens): break
-                          nx, ny = float(tokens[i]), float(tokens[i+1]); i += 2
-                          x, y = (x + nx, y + ny) if cmd.islower() else (nx, ny)
-                          raw_pts.append((x, y))
-                      elif cmd in "Hh":
-                          nx = float(tokens[i]); i += 1
-                          x = x + nx if cmd == "h" else nx
-                          raw_pts.append((x, y))
-                      elif cmd in "Vv":
-                          ny = float(tokens[i]); i += 1
-                          y = y + ny if cmd == "v" else ny
-                          raw_pts.append((x, y))
-                      elif cmd in "Cc":
-                          if i + 5 >= len(tokens): break
-                          nx, ny = float(tokens[i+4]), float(tokens[i+5]); i += 6
-                          x, y = (x + nx, y + ny) if cmd == "c" else (nx, ny)
-                          raw_pts.append((x, y))
-                      elif cmd in "SsQq":
-                          if i + 3 >= len(tokens): break
-                          nx, ny = float(tokens[i+2]), float(tokens[i+3]); i += 4
-                          x, y = (x + nx, y + ny) if cmd.islower() else (nx, ny)
-                          raw_pts.append((x, y))
-                      elif cmd in "Aa":
-                          if i + 6 >= len(tokens): break
-                          nx, ny = float(tokens[i+5]), float(tokens[i+6]); i += 7
-                          x, y = (x + nx, y + ny) if cmd == "a" else (nx, ny)
-                          raw_pts.append((x, y))
-                      else:
-                          break
-              elif tag in ("polygon", "polyline"):
-                  nums = [float(v) for v in re.findall(r"[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?", elem.get("points") or "")]
-                  for i in range(0, len(nums) - 1, 2):
-                      raw_pts.append((nums[i], nums[i+1]))
-              elif tag == "rect":
-                  rx = float(elem.get("x") or 0)
-                  ry = float(elem.get("y") or 0)
-                  rw = float(elem.get("width") or 0)
-                  rh = float(elem.get("height") or 0)
-                  raw_pts = [(rx, ry), (rx + rw, ry), (rx + rw, ry + rh), (rx, ry + rh)]
-              return [apply_mat(mat, px, py) for px, py in raw_pts]
-
-          def get_prop(elem, prop):
-              style = elem.get("style") or ""
-              m = re.search(rf"(?:^|;)\s*{prop}\s*:\s*([^;]+)", style, re.I)
-              if m:
-                  return m.group(1).strip()
-              return elem.get(prop)
-
-          def set_prop(elem, prop, val):
-              style = elem.get("style") or ""
-              if re.search(rf"(?:^|;)\s*{prop}\s*:", style, re.I):
-                  new_style = re.sub(rf"((?:^|;)\s*{prop}\s*:\s*)[^;]+", rf"\g<1>{val}", style, flags=re.I)
-                  elem.set("style", new_style)
-              else:
-                  elem.set(prop, val)
-
-          candidates = []
-          all_fills = set()
-
-          def walk(elem, parent_mat, inherited_fill):
-              tag = elem.tag.split("}")[-1]
-              if tag in ("defs", "style", "text", "title", "desc"):
-                  return
+          def walk(elem, parent_mat):
               mat = mat_mul(parent_mat, parse_transform(elem.get("transform")))
-              own_fill = get_prop(elem, "fill")
-              eff_fill = own_fill if own_fill is not None else inherited_fill
-
-              if tag in ("path", "polygon", "rect"):
-                  if eff_fill:
-                      all_fills.add(eff_fill)
-                  rgb = parse_color(eff_fill)
-                  if is_grey_floor(rgb):
-                      pts = extract_points(elem, mat)
-                      if pts:
-                          xs = [p[0] for p in pts]
-                          ys = [p[1] for p in pts]
-                          bw, bh = max(xs) - min(xs), max(ys) - min(ys)
-                          # ข้ามกรอบพื้นหลังเต็มจอ
-                          if not (tag == "rect" and bw >= W * 0.75 and bh >= H * 0.75):
-                              cx = sum(xs) / len(xs)
-                              cy = sum(ys) / len(ys)
-                              lum = sum(rgb) / 3.0
-                              candidates.append((elem, cx, cy, bw, bh, lum, eff_fill))
-
+              cls_set = set((elem.get("class") or "").split())
+              matched = cls_set & FLOOR_CLASSES
+              if matched:
+                  face_type = next(iter(matched))
+                  cx, cy = apply_mat(mat, 9.0, 9.0)
+                  faces.append((elem, face_type, cx, cy))
               for child in elem:
-                  walk(child, mat, eff_fill)
+                  walk(child, mat)
 
-          walk(root, (1.0, 0.0, 0.0, 1.0, 0.0, 0.0), None)
+          walk(root, (1.0, 0.0, 0.0, 1.0, 0.0, 0.0))
 
-          if not candidates:
-              print("WARNING: Recolored 0 floor faces! Sample fills found:", sorted(all_fills)[:25])
+          if not faces:
+              print("WARNING: No cont-*-0 floor faces found!")
           else:
-              min_x = min(c[1] for c in candidates)
-              max_x = max(c[1] for c in candidates)
-              min_y = min(c[2] for c in candidates)
-              max_y = max(c[2] for c in candidates)
+              min_x = min(f[2] for f in faces)
+              max_x = max(f[2] for f in faces)
+              min_y = min(f[3] for f in faces)
+              max_y = max(f[3] for f in faces)
               span_x = max(max_x - min_x, 1.0)
               span_y = max(max_y - min_y, 1.0)
 
-              lums = [c[5] for c in candidates]
-              lo_lum, hi_lum = min(lums), max(lums)
-              lum_span = hi_lum - lo_lum
-
               # เฉดเกรเดี้ยนคลื่นสีเขียว (ท้องคลื่นเข้ม -> มรกต -> เขียวสด -> สันคลื่นสว่าง)
               STOPS = [
-                  (0.00, (7, 52, 30)),
-                  (0.35, (14, 102, 56)),
-                  (0.70, (26, 168, 86)),
-                  (1.00, (74, 222, 128)),
+                  (0.00, (11, 66, 36)),
+                  (0.35, (20, 118, 62)),
+                  (0.70, (34, 185, 94)),
+                  (1.00, (86, 232, 138)),
               ]
 
-              def wave_rgb(u, v, shade):
-                  # ลู่เฉียงไปตามแนวพื้น 3D พร้อมคลื่นพริ้ว 2 ชั้น
-                  diag = 0.70 * u + 0.30 * v
-                  w1 = math.sin((diag * 2.1 + 0.32 * math.sin(v * math.pi * 2.0)) * math.pi * 2.0)
-                  w2 = math.sin((u * 1.3 - v * 1.1) * math.pi * 2.0)
+              def wave_hex(u, v, shade):
+                  # คำนวณระยะตามแนวแกนเฉียงของพื้นตึก (u = ซ้ายไปขวา, v = บนลงล่าง)
+                  along = 0.65 * u + 0.35 * v
+                  across = 0.65 * v - 0.35 * u
+                  w1 = math.sin((along * 2.4 + 0.45 * math.sin(across * math.pi * 3.0)) * math.pi * 2.0)
+                  w2 = math.sin((along * 1.1 - across * 2.2) * math.pi * 2.0)
                   t = max(0.0, min(1.0, 0.50 + 0.36 * w1 + 0.14 * w2))
 
-                  for idx in range(len(STOPS) - 1):
-                      t0, c0 = STOPS[idx]
-                      t1, c1 = STOPS[idx + 1]
+                  for i in range(len(STOPS) - 1):
+                      t0, c0 = STOPS[i]
+                      t1, c1 = STOPS[i + 1]
                       if t <= t1:
                           k = (t - t0) / (t1 - t0) if t1 > t0 else 0.0
                           r = int(round((c0[0] + (c1[0] - c0[0]) * k) * shade))
                           g = int(round((c0[1] + (c1[1] - c0[1]) * k) * shade))
                           b = int(round((c0[2] + (c1[2] - c0[2]) * k) * shade))
                           return f"#{max(0,min(255,r)):02x}{max(0,min(255,g)):02x}{max(0,min(255,b)):02x}"
-                  return "#1aa856"
+                  return "#22b95e"
 
-              # สร้าง linearGradient เผื่อกรณีมีแผ่นฐานชิ้นใหญ่ชิ้นเดียว
-              defs = ET.Element(qtag("defs"))
-              lg = ET.SubElement(defs, qtag("linearGradient"), {
-                  "id": "gwSlabGrad", "gradientUnits": "objectBoundingBox",
-                  "x1": "0%", "y1": "20%", "x2": "100%", "y2": "80%"
-              })
-              for off, col in [("0%", "#07341e"), ("28%", "#168f4b"), ("52%", "#0c5730"), ("78%", "#34d375"), ("100%", "#094024")]:
-                  ET.SubElement(lg, qtag("stop"), {"offset": off, "stop-color": col})
-              root.insert(0, defs)
-
-              matched_originals = set()
-              for elem, cx, cy, bw, bh, lum, orig_fill in candidates:
-                  matched_originals.add(orig_fill)
+              for elem, face_type, cx, cy in faces:
                   u = (cx - min_x) / span_x
                   v = (cy - min_y) / span_y
 
-                  if bw > span_x * 0.25 and bh > span_y * 0.25:
-                      set_prop(elem, "fill", "url(#gwSlabGrad)")
-                  else:
-                      if lum_span < 1.0 or lum >= lo_lum + 0.62 * lum_span:
-                          shade, is_top = 1.00, True
-                      elif lum >= lo_lum + 0.28 * lum_span:
-                          shade, is_top = 0.68, False
-                      else:
-                          shade, is_top = 0.45, False
+                  if face_type == "cont-top-0":
+                      elem.set("fill", wave_hex(u, v, 1.00))
+                      elem.set("stroke", "#052614")
+                      elem.set("stroke-opacity", "0.55")
+                      elem.set("stroke-width", "0.45")
+                  elif face_type == "cont-left-0":
+                      elem.set("fill", wave_hex(u, v, 0.72))
+                  else:  # cont-right-0
+                      elem.set("fill", wave_hex(u, v, 0.52))
 
-                      set_prop(elem, "fill", wave_rgb(u, v, shade))
-                      if is_top and not get_prop(elem, "stroke"):
-                          elem.set("stroke", "#042112")
-                          elem.set("stroke-opacity", "0.45")
-                          elem.set("stroke-width", "0.5")
+                  # ลบ class เดิมออกเพื่อไม่ให้ CSS .cont-*-0 มาทับสีใหม่
+                  if "class" in elem.attrib:
+                      del elem.attrib["class"]
 
-                  cur_stroke = get_prop(elem, "stroke")
-                  if is_grey_floor(parse_color(cur_stroke)):
-                      set_prop(elem, "stroke", "#052916")
-
-              print(f"Recolored {len(candidates)} floor faces! Original floor colors:", sorted(matched_originals)[:15])
+              print(f"Recolored {len(faces)} floor faces successfully!")
 
           tree.write(path, encoding="utf-8", xml_declaration=False)
           EOF
