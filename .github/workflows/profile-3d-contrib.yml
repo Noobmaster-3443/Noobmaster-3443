@@ -51,13 +51,10 @@ jobs:
               if not rgb:
                   return False
               r, g, b = rgb
-              # ข้ามพื้นหลังดำสนิทและสีขาวสนิท
-              if max(r, g, b) < 16 or min(r, g, b) > 235:
+              if max(r, g, b) < 5 or min(r, g, b) > 235:
                   return False
-              # ข้ามสีเขียวของตัวตึก
               if g > r + 12 and g > b + 10:
                   return False
-              # จับเฉพาะโทนสีเทา / เทาอมฟ้าของพื้นสี่เหลี่ยม
               return (max(r, g, b) - min(r, g, b)) <= 35
 
           tag_pat = re.compile(r'<(?:path|polygon)\b[^>]*>')
@@ -66,7 +63,6 @@ jobs:
               r'(rgba?\([^)]+\)|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b)'
           )
 
-          # รอบแรก: หาช่วงความสว่างของสีเทา เพื่อแยกหน้าบนกับขอบข้าง
           lums = []
           for tm in tag_pat.finditer(svg):
               for cm in color_pat.finditer(tm.group(0)):
@@ -116,7 +112,7 @@ jobs:
           replaced = 0
           def recolor_tag(tm):
               def replace_color(cm):
-                  nonlocal replaced
+                  global replaced
                   prefix, col = cm.group(1), cm.group(2)
                   rgb = parse_color(col)
                   if is_grey_floor(rgb):
