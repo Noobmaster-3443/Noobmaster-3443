@@ -7,7 +7,7 @@
   <!-- Cute Green Badges -->
   <p>
     <img src="https://img.shields.io/badge/STATUS-ONLINE-4ADE80?style=for-the-badge&logo=statuspage&logoColor=14532D&labelColor=14532D" alt="Status Online"/>
-    <img src="https://img.shields.io/badge/CLASS-VIBE__CODER-86EFAC?style=for-the-badge&logo=sparkles&logoColor=14532D&labelColor=14532D" alt="Vibe Coder"/>
+    <img src="https://img.shields.io/badge/CLASS-VIBE__CODER-86EFAC?style=for-the-badge&labelColor=14532D" alt="Vibe Coder"/>
     <img src="https://komarev.com/ghpvc/?username=Noobmaster-3443&label=PROFILE+VIEWS&color=4ade80&style=for-the-badge" alt="Profile Views"/>
   </p>
 
@@ -31,7 +31,7 @@
 
   <!-- Activity Graph (Green Wave - Last 31 Days) -->
   <h3>💚 <code>Green Energy Wave (Last 31 Days)</code> 💚</h3>
-  <img src="https://github-readme-activity-graph.vercel.app/graph?username=Noobmaster-3443&bg_color=0f1f17&color=86efac&line=4ade80&point=ffffff&area=true&area_color=22c55e&custom_title=SilverSwaiFish's%20Activity%20Wave" width="95%" alt="Green Activity Graph" />
+  <img src="https://github-readme-activity-graph.vercel.app/graph?username=Noobmaster-3443&bg_color=0f1f17&color=86efac&line=4ade80&point=ffffff&area=true&area_color=22c55e&radius=16&hide_border=true&custom_title=SilverSwaiFish%20Activity%20Wave" width="95%" alt="Green Activity Graph" />
 
   <br/><br/>
 
@@ -46,7 +46,7 @@
   <!-- GitHub Stats & Top Languages -->
   <h3>✨ <code>Powerpuff Stats</code> ✨</h3>
   <p>
-    <img height="165" src="https://github-readme-stats.vercel.app/api?username=Noobmaster-3443&show_icons=true&bg_color=0f1f17&title_color=86efac&icon_color=4ade80&text_color=ecfdf5&border_color=4ade80&border_radius=16&custom_title=SilverSwaiFish's%20Stats" alt="GitHub Stats" />
+    <img height="165" src="https://github-readme-stats.vercel.app/api?username=Noobmaster-3443&show_icons=true&bg_color=0f1f17&title_color=86efac&icon_color=4ade80&text_color=ecfdf5&border_color=4ade80&border_radius=16&custom_title=SilverSwaiFish%20Stats" alt="GitHub Stats" />
     <img height="165" src="https://github-readme-stats.vercel.app/api/top-langs/?username=Noobmaster-3443&layout=compact&bg_color=0f1f17&title_color=86efac&text_color=ecfdf5&border_color=4ade80&border_radius=16" alt="Top Languages" />
   </p>
 
@@ -54,7 +54,7 @@
 
   <!-- GitHub Streak Stats -->
   <p>
-    <img src="https://streak-stats.demolab.com?user=Noobmaster-3443&background=0F1F17&border=4ADE80&stroke=22C55E&ring=4ADE80&fire=86EFAC&currStreakNum=FFFFFF&sideNums=FFFFFF&currStreakLabel=86EFAC&sideLabels=4ADE80&dates=A7F3D0&border_radius=16" width="55%" alt="GitHub Streak" />
+    <img src="https://streak-stats.demolab.com/?user=Noobmaster-3443&background=0F1F17&border=4ADE80&stroke=22C55E&ring=4ADE80&fire=86EFAC&currStreakNum=FFFFFF&sideNums=FFFFFF&currStreakLabel=86EFAC&sideLabels=4ADE80&dates=A7F3D0&border_radius=16" width="55%" alt="GitHub Streak" />
   </p>
 
   <br/>
