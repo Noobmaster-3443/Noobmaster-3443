@@ -1,0 +1,94 @@
+<svg width="900" height="54" viewBox="0 0 900 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    
+    <linearGradient id="fadeGrad" x1="0" y1="0" x2="900" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#000000" />
+      <stop offset="12%" stop-color="#FFFFFF" />
+      <stop offset="88%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#000000" />
+    </linearGradient>
+    <mask id="edgeFade">
+      <rect x="0" y="0" width="900" height="54" fill="url(#fadeGrad)" />
+    </mask>
+
+    
+    <linearGradient id="waveMain" x1="0" y1="0" x2="900" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#86EFAC" />
+      <stop offset="50%" stop-color="#22C55E" />
+      <stop offset="100%" stop-color="#86EFAC" />
+    </linearGradient>
+
+    <style>
+      .wave-flow-1 {
+        animation: slide120 3.2s linear infinite;
+      }
+      .wave-flow-2 {
+        animation: slide160 4.6s linear infinite;
+      }
+      @keyframes slide120 {
+        from { transform: translateX(0px); }
+        to { transform: translateX(-120px); }
+      }
+      @keyframes slide160 {
+        from { transform: translateX(-160px); }
+        to { transform: translateX(0px); }
+      }
+
+      .center-beat {
+        animation: softBeat 2.2s ease-in-out infinite;
+      }
+      @keyframes softBeat {
+        0%, 100% { transform: scale(1); }
+        25% { transform: scale(1.16); }
+        50% { transform: scale(0.96); }
+        75% { transform: scale(1.08); }
+      }
+
+      .star-spin {
+        animation: starTwinkle 2.5s ease-in-out infinite;
+      }
+      .star-spin-delay {
+        animation: starTwinkle 2.5s ease-in-out 1.2s infinite;
+      }
+      @keyframes starTwinkle {
+        0%, 100% { transform: scale(0.75) rotate(0deg); opacity: 0.6; }
+        50% { transform: scale(1.18) rotate(25deg); opacity: 1; }
+      }
+    </style>
+  </defs>
+
+  
+  <g mask="url(#edgeFade)">
+    
+    <g class="wave-flow-2">
+      <path d="M 0 27 Q 40 43, 80 27 T 160 27 T 240 27 T 320 27 T 400 27 T 480 27 T 560 27 T 640 27 T 720 27 T 800 27 T 880 27 T 960 27 T 1040 27 T 1120 27" stroke="#BBF7D0" stroke-width="5" stroke-linecap="round" opacity="0.8" />
+    </g>
+
+    
+    <g class="wave-flow-1">
+      <path d="M 0 27 Q 30 13, 60 27 T 120 27 T 180 27 T 240 27 T 300 27 T 360 27 T 420 27 T 480 27 T 540 27 T 600 27 T 660 27 T 720 27 T 780 27 T 840 27 T 900 27 T 960 27 T 1020 27 T 1080 27" stroke="url(#waveMain)" stroke-width="3.5" stroke-linecap="round" />
+    </g>
+  </g>
+
+  
+  <ellipse cx="450" cy="27" rx="58" ry="18" fill="#0F1F17" opacity="0.72" />
+  <ellipse cx="450" cy="27" rx="54" ry="15" stroke="#4ADE80" stroke-width="1.8" opacity="0.65" />
+
+  
+  <g transform="translate(412, 27)">
+    <path class="star-spin" d="M 0 -8 L 2.2 -2.2 L 8 0 L 2.2 2.2 L 0 8 L -2.2 2.2 L -8 0 L -2.2 -2.2 Z" fill="#FDE047" stroke="#14532D" stroke-width="1.5" />
+  </g>
+
+  
+  <g transform="translate(450, 27)">
+    <g class="center-beat">
+      <path d="M 14 -4 C 14 -11, 3 -13, 0 -6 C -3 -13, -14 -11, -14 -4 C -14 5, 0 13, 0 13 C 0 13, 14 5, 14 -4 Z" fill="#4ADE80" stroke="#14532D" stroke-width="2.4" stroke-linejoin="round" />
+      <circle cx="-6" cy="-5" r="2" fill="#FFFFFF" opacity="0.9" />
+    </g>
+  </g>
+
+  
+  <g transform="translate(488, 27)">
+    <path class="star-spin-delay" d="M 0 -8 L 2.2 -2.2 L 8 0 L 2.2 2.2 L 0 8 L -2.2 2.2 L -8 0 L -2.2 -2.2 Z" fill="#86EFAC" stroke="#14532D" stroke-width="1.5" />
+  </g>
+</svg>
