@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 260" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#07080f" />
+      <stop offset="55%" stop-color="#0c0a18" />
+      <stop offset="100%" stop-color="#170614" />
+    </linearGradient>
+
+    <linearGradient id="beamGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00f0ff" stop-opacity="0" />
+      <stop offset="50%" stop-color="#00f0ff" stop-opacity="0.7" />
+      <stop offset="100%" stop-color="#ff003c" stop-opacity="0" />
+    </linearGradient>
+
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#00f0ff" stroke-width="0.6" stroke-opacity="0.1" />
+    </pattern>
+
+    <pattern id="scanlines" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="2" fill="#000000" fill-opacity="0.22" />
+    </pattern>
+
+    <filter id="glowCyan" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="glowYellow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <style>
+    .title { font-family: 'Courier New', Consolas, monospace; font-weight: 900; font-size: 46px; letter-spacing: 3px; }
+    .sub { font-family: 'Courier New', Consolas, monospace; font-weight: 700; font-size: 14px; letter-spacing: 2px; }
+    .hud { font-family: 'Courier New', Consolas, monospace; font-weight: 700; font-size: 11px; letter-spacing: 1.5px; }
+
+    .glitch-red { animation: gRed 3.4s infinite; }
+    .glitch-cyan { animation: gCyan 3.4s infinite; }
+    .blink { animation: blinkAnim 1s steps(2, start) infinite; }
+
+    @keyframes gRed {
+      0%, 86%, 100% { transform: translate(0, 0); opacity: 0.5; }
+      88% { transform: translate(-4px, -1px); opacity: 0.95; }
+      90% { transform: translate(3px, 1px); opacity: 0.85; }
+      92% { transform: translate(-2px, 0); opacity: 0.9; }
+      94% { transform: translate(0, 0); opacity: 0.5; }
+    }
+    @keyframes gCyan {
+      0%, 86%, 100% { transform: translate(0, 0); opacity: 0.5; }
+      88% { transform: translate(4px, 1px); opacity: 0.95; }
+      90% { transform: translate(-3px, -1px); opacity: 0.85; }
+      92% { transform: translate(2px, 0); opacity: 0.9; }
+      94% { transform: translate(0, 0); opacity: 0.5; }
+    }
+    @keyframes blinkAnim {
+      to { opacity: 0; }
+    }
+  </style>
+
+  
+  <polygon points="24,4 868,4 896,32 896,236 876,256 32,256 4,228 4,24" fill="url(#bgGrad)" />
+  <polygon points="24,4 868,4 896,32 896,236 876,256 32,256 4,228 4,24" fill="url(#grid)" />
+
+  
+  <polygon points="24,4 868,4 896,32 896,236 876,256 32,256 4,228 4,24" fill="none" stroke="#ff003c" stroke-width="2" stroke-opacity="0.85" />
+  <polyline points="24,10 140,10 155,4" fill="none" stroke="#fcee0a" stroke-width="3" filter="url(#glowYellow)" />
+  <polyline points="890,175 890,232 872,250 720,250" fill="none" stroke="#00f0ff" stroke-width="3" filter="url(#glowCyan)" />
+
+  
+  <polygon points="4,60 12,68 12,185 4,193" fill="#fcee0a" filter="url(#glowYellow)" />
+
+  
+  <text x="38" y="34" fill="#00f0ff" class="hud">SYS.BOOT // NODE_3443</text>
+  <line x1="215" y1="30" x2="540" y2="30" stroke="#00f0ff" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="6 4" />
+  <circle cx="745" cy="30" r="4" fill="#fcee0a" class="blink" />
+  <text x="756" y="34" fill="#fcee0a" class="hud">NET: ONLINE</text>
+
+  
+  <g transform="translate(46, 128)">
+    <text x="0" y="0" fill="#ff003c" class="title glitch-red">NOOBMASTER-3443</text>
+    <text x="0" y="0" fill="#00f0ff" class="title glitch-cyan">NOOBMASTER-3443</text>
+    <text x="0" y="0" fill="#ffffff" class="title">NOOBMASTER-3443</text>
+  </g>
+
+  
+  <polygon points="46,146 296,146 284,174 46,174" fill="#fcee0a" />
+  <text x="58" y="165" fill="#07080f" class="sub">TOTO // VIBE CODER</text>
+
+  <polygon points="306,146 435,146 423,174 294,174" fill="none" stroke="#00f0ff" stroke-width="1.5" />
+  <text x="315" y="165" fill="#00f0ff" class="sub">SOLO_DEV</text>
+
+  
+  <text x="48" y="206" fill="#e6edf3" class="sub">&gt; BUILDING WEB APPS &amp; PERSONAL TOOLS<tspan fill="#ff003c" class="blink">_</tspan></text>
+
+  
+  <text x="48" y="238" fill="#8b949e" class="hud">HEX:0x3443  |  PROTOCOL:VIBE  |  BUILD:2077</text>
+
+  
+  <g transform="translate(755, 136)">
+    
+    <g>
+      <circle r="72" fill="none" stroke="#00f0ff" stroke-width="1.5" stroke-dasharray="16 8 4 8" stroke-opacity="0.8" />
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="18s" repeatCount="indefinite" />
+    </g>
+    
+    <g>
+      <circle r="54" fill="none" stroke="#ff003c" stroke-width="3" stroke-dasharray="45 30 15 30" filter="url(#glowCyan)" />
+      <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="10s" repeatCount="indefinite" />
+    </g>
+    
+    <g>
+      <polygon points="0,-34 29,-17 29,17 0,34 -29,17 -29,-17" fill="#fcee0a" fill-opacity="0.08" stroke="#fcee0a" stroke-width="1.8" />
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="24s" repeatCount="indefinite" />
+    </g>
+    
+    <line x1="-82" y1="0" x2="-60" y2="0" stroke="#fcee0a" stroke-width="1.5" />
+    <line x1="60" y1="0" x2="82" y2="0" stroke="#fcee0a" stroke-width="1.5" />
+    <line x1="0" y1="-82" x2="0" y2="-60" stroke="#fcee0a" stroke-width="1.5" />
+    <line x1="0" y1="60" x2="0" y2="82" stroke="#fcee0a" stroke-width="1.5" />
+    <text x="0" y="5" text-anchor="middle" fill="#ffffff" class="sub">3443</text>
+  </g>
+
+  
+  <rect x="8" y="10" width="884" height="3" fill="url(#beamGrad)">
+    <animate attributeName="y" values="10;246;10" dur="4.5s" repeatCount="indefinite" />
+  </rect>
+
+  
+  <polygon points="24,4 868,4 896,32 896,236 876,256 32,256 4,228 4,24" fill="url(#scanlines)" />
+</svg>
