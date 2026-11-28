@@ -29,12 +29,6 @@
   <img src="assets/ppg-green-divider.svg" width="100%" alt="Green PPG Divider" />
   <br/><br/>
 
-  <!-- Activity Graph (Green Wave - Last 31 Days) -->
-  <h3>💚 <code>Green Energy Wave (Last 31 Days)</code> 💚</h3>
-  <img src="https://github-readme-activity-graph.vercel.app/graph?username=Noobmaster-3443&bg_color=0f1f17&color=86efac&line=4ade80&point=ffffff&area=true&area_color=22c55e&radius=16&hide_border=true&custom_title=SilverSwaiFish%20Activity%20Wave" width="95%" alt="Green Activity Graph" />
-
-  <br/><br/>
-
   <!-- 3D Green Contribution Graph -->
   <h3>🌿 <code>3D Green Contribution City</code> 🌿</h3>
   <img src="profile-3d-contrib/profile-night-green.svg" width="90%" alt="3D Green Contribution Graph" />
