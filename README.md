@@ -16,7 +16,6 @@
   <br/><br/>
 
   <!-- Tech Stack -->
-  <h3>🍀 <code>SilverSwaiFish's Powerpuff Toolkit</code> 🍀</h3>
   <p>
     <img src="https://skillicons.dev/icons?i=ts,js,react,nodejs,tailwind,postgres,mysql,linux,git,vscode&theme=dark" alt="Tech Stack" />
   </p>
@@ -30,7 +29,6 @@
   <br/><br/>
 
   <!-- 3D Green Contribution Graph -->
-  <h3>🌿 <code>3D Green Contribution City</code> 🌿</h3>
   <img src="profile-3d-contrib/profile-night-green.svg" width="90%" alt="3D Green Contribution Graph" />
 
   <br/><br/>
@@ -38,7 +36,6 @@
   <br/><br/>
 
   <!-- GitHub Stats & Top Languages -->
-  <h3>✨ <code>Powerpuff Stats</code> ✨</h3>
   <p>
     <img height="165" src="https://github-readme-stats.vercel.app/api?username=Noobmaster-3443&show_icons=true&bg_color=0f1f17&title_color=86efac&icon_color=4ade80&text_color=ecfdf5&border_color=4ade80&border_radius=16&custom_title=SilverSwaiFish%20Stats" alt="GitHub Stats" />
     <img height="165" src="https://github-readme-stats.vercel.app/api/top-langs/?username=Noobmaster-3443&layout=compact&bg_color=0f1f17&title_color=86efac&text_color=ecfdf5&border_color=4ade80&border_radius=16" alt="Top Languages" />
@@ -53,7 +50,4 @@
 
   <br/>
   <img src="assets/ppg-green-divider.svg" width="100%" alt="Green PPG Divider" />
-  <br/>
-
-  <p><sub>✨ crafted with sugar, spice, and green vibes by <b>SilverSwaiFish</b> 💚</sub></p>
 </div>
